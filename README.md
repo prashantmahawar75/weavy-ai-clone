@@ -1,273 +1,201 @@
-# Weavy AI - LLM Workflow Builder Clone
+# Weavy AI — Workflow Builder Clone
 
-A pixel-perfect clone of [Weavy.ai](https://weavy.ai), built with Next.js, React Flow, Clerk, Prisma, Trigger.dev, and Google Gemini.
+A pixel-perfect clone of [Weavy.ai](https://weavy.ai), featuring a fully animated marketing landing page and a visual AI workflow editor. Built with Next.js 16, React Flow, Framer Motion, Clerk, Prisma, Trigger.dev, and Google Gemini.
+
+![Next.js](https://img.shields.io/badge/Next.js-16.1.6-black?logo=nextdotjs)
+![TypeScript](https://img.shields.io/badge/TypeScript-strict-blue?logo=typescript)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind%20CSS-v4-38bdf8?logo=tailwindcss)
+![Framer Motion](https://img.shields.io/badge/Framer%20Motion-12-ff69b4?logo=framer)
+
+---
 
 ## Features
 
-- **Visual Workflow Builder**: Drag-and-drop node-based editor powered by React Flow
-- **6 Node Types**: Text, Upload Image, Upload Video, Run Any LLM, Crop Image, Extract Frame
-- **AI Integration**: Google Gemini models (Flash, Pro, etc.) for LLM tasks
-- **Media Processing**: Transloadit for image cropping and video frame extraction
-- **Background Tasks**: Trigger.dev for reliable async task execution
-- **Authentication**: Clerk auth with dark theme
-- **Persistence**: PostgreSQL with Prisma ORM
-- **DAG Validation**: Prevents cycles, validates connection types
-- **Undo/Redo**: Full undo/redo with zundo (Cmd+Z / Cmd+Shift+Z)
-- **Rate Limiting**: Token-bucket rate limiter on all API routes
-- **SSRF Protection**: Blocks private IPs, cloud metadata, and dangerous URLs
-- **User API Keys**: Bring your own Gemini/Transloadit/Trigger.dev keys via Settings page
-- **History Panel**: Track all workflow runs with detailed results
-- **Import/Export**: Save and load workflows as JSON
-- **Sample Workflow**: Pre-built "Product Marketing Kit Generator"
+### Marketing Landing Page (pixel-perfect recreation of weavy.ai)
+
+- **Animated Navbar** — Scroll-aware fixed header with shrinking "Start Now" CTA, navigation links (Collective, Enterprise, Pricing, Request a Demo), and Clerk auth integration
+- **Hero Section** — Gradient background with grid pattern overlay, "Weavy" / "Artistic Intelligence" typography, and a live React Flow canvas showcasing an interactive workflow
+- **Mobile Hero Cards** — Responsive vertical card layout with SVG connection lines for mobile viewports
+- **Sticky Model Section** — 400vh scroll-driven sticky section showcasing 15 AI models (GPT img 1, Wan, SD 3.5, Runway Gen-4, Imagen 3, Veo 3, Recraft V3, Kling, Flux Pro 1.1 Ultra, Minimax Video, Ideogram V3, Luma Ray 2, Minimax Image 01, Hunyuan, Bria) with background images and videos
+- **Tool Section** — Scattered tool badges (Rotate, Crop, Blur, Liquify, Text, Color, Overlay, Background, Upscale, Resize, Relight) around a central hero image
+- **Editor Section** — "Control the Outcome" with mouse-move parallax effect, compositing layers preview
+- **Workflow Transition** — 200vh scroll-driven "From Workflow → to App Mode" section with animated panels and floating nodes
+- **Explore Workflows** — Auto-scrolling infinite carousel with real workflow names (Wan Lora - Rotate, Multiple Models, Wan LoRa Inflate, Relight 2.0 Human, etc.)
+- **Footer** — Dark sage-green design with social links (LinkedIn, Instagram, Discord), navigation columns, and large yellow "Start Now" CTA
+- **Smooth Scrolling** — Lenis-powered smooth scroll across the entire page
+
+### Workflow Builder (full-featured AI workflow editor)
+
+- **Visual Drag-and-Drop Editor** — Node-based canvas powered by @xyflow/react
+- **6 Node Types** — Text, Upload Image, Upload Video, Run Any LLM, Crop Image, Extract Frame
+- **AI Integration** — Google Gemini models (Flash, Pro, 2.0) for LLM tasks
+- **Media Processing** — Transloadit for image cropping and video frame extraction
+- **Background Tasks** — Trigger.dev for reliable async task execution
+- **Authentication** — Clerk auth with automatic redirects
+- **Persistence** — PostgreSQL with Prisma ORM (4 models: User, Workflow, WorkflowRun, UserApiKey)
+- **DAG Validation** — Prevents cycles, validates connection types
+- **Parallel Execution** — Nodes at the same dependency level run concurrently
+- **Undo/Redo** — Full undo/redo stack with zundo (Cmd+Z / Cmd+Shift+Z)
+- **Rate Limiting** — Token-bucket rate limiter on all API routes
+- **SSRF Protection** — Blocks private IPs, cloud metadata, and dangerous URLs
+- **Input Validation** — Zod schemas on every API endpoint
+- **User API Keys** — Bring your own Gemini/Transloadit/Trigger.dev keys via Settings
+- **History Panel** — Track all workflow runs with detailed per-node results
+- **Import/Export** — Save and load workflows as JSON
+- **Sample Workflow** — Pre-built "Product Marketing Kit Generator"
+
+---
 
 ## Tech Stack
 
 | Layer | Technology |
 |-------|-----------|
-| Framework | Next.js 16 (App Router) |
-| Language | TypeScript (strict) |
-| Canvas | @xyflow/react |
+| Framework | Next.js 16.1.6 (App Router, Turbopack) |
+| Language | TypeScript (strict mode) |
+| Canvas / Workflow | @xyflow/react |
+| Animations | Framer Motion 12 |
+| Smooth Scroll | Lenis |
 | State | Zustand + zundo (undo/redo) |
-| Auth | Clerk |
+| Validation | Zod v4 |
+| Auth | Clerk (@clerk/nextjs) |
 | Database | PostgreSQL + Prisma 5 |
 | AI | Google Gemini API |
 | Tasks | Trigger.dev |
 | Media | Transloadit |
 | Styling | Tailwind CSS v4 |
+| Fonts | Geist + Geist Mono |
 
 ---
 
 ## Prerequisites
 
-Before you begin, make sure you have the following installed on your machine:
-
-| Tool | Version | How to install |
-|------|---------|----------------|
-| **Node.js** | v18.18+ (v20+ recommended) | [https://nodejs.org](https://nodejs.org) or `brew install node` |
-| **npm** | v9+ (comes with Node.js) | Included with Node.js |
-| **PostgreSQL** | v14+ | `brew install postgresql@16` (macOS) or [https://www.postgresql.org/download](https://www.postgresql.org/download) |
-| **Git** | Any recent version | `brew install git` or [https://git-scm.com](https://git-scm.com) |
-
-### Verify installations
+| Tool | Version | Install |
+|------|---------|---------|
+| **Node.js** | v18.18+ (v20+ recommended) | [nodejs.org](https://nodejs.org) or `brew install node` |
+| **npm** | v9+ (bundled with Node.js) | Included with Node.js |
+| **PostgreSQL** | v14+ | `brew install postgresql@16` or [postgresql.org](https://www.postgresql.org/download) |
+| **Git** | Any recent version | `brew install git` or [git-scm.com](https://git-scm.com) |
 
 ```bash
-node --version    # Should print v18.18.0 or higher
-npm --version     # Should print 9.x or higher
-psql --version    # Should print 14.x or higher
-git --version     # Any version is fine
+# Verify installations
+node --version    # v18.18.0+
+npm --version     # 9.x+
+psql --version    # 14.x+
 ```
 
 ---
 
-## Step-by-Step Setup
+## Setup (9 Steps)
 
-### Step 1: Clone the repository
+### 1. Clone the repository
 
 ```bash
-git clone https://github.com/AnantGp/pixel-perfect-clone.git
-cd pixel-perfect-clone
+git clone https://github.com/prashantmahawar75/weavy-ai-clone.git
+cd weavy-ai-clone
 ```
 
-> If you already have the project folder, just `cd` into it:
-> ```bash
-> cd "/Users/anant/Desktop/Projects/weavy.ai_clone project/weavy-clone"
-> ```
-
----
-
-### Step 2: Install dependencies
+### 2. Install dependencies
 
 ```bash
 npm install
 ```
 
-This installs all packages listed in `package.json` (~30 seconds).
-
----
-
-### Step 3: Set up PostgreSQL database
-
-#### 3a. Start PostgreSQL (if not already running)
+### 3. Set up PostgreSQL
 
 ```bash
-# macOS (Homebrew)
+# Start PostgreSQL (macOS Homebrew)
 brew services start postgresql@16
 
-# Or if installed without version suffix:
-brew services start postgresql
+# Create database and user
+psql postgres <<EOF
+CREATE DATABASE weavy_db;
+CREATE USER weavy_user WITH PASSWORD 'your_password';
+GRANT ALL PRIVILEGES ON DATABASE weavy_db TO weavy_user;
+EOF
 ```
 
-#### 3b. Create the database
+### 4. Get API keys
 
-```bash
-# Open PostgreSQL shell
-psql postgres
+| Service | Required | Where to get |
+|---------|----------|-------------|
+| **Clerk** | Yes | [dashboard.clerk.com](https://dashboard.clerk.com) — Create app → copy Publishable Key + Secret Key |
+| **Google Gemini** | Yes | [aistudio.google.com/apikey](https://aistudio.google.com/apikey) — Create API Key |
+| **Transloadit** | Optional | [transloadit.com](https://transloadit.com) — Dashboard → API Credentials |
+| **Trigger.dev** | Optional | [trigger.dev](https://trigger.dev) — Create project → copy Secret Key |
 
-# Inside psql, run:
-CREATE DATABASE weavy_clone;
-CREATE USER weavy_user WITH PASSWORD 'your_secure_password';
-GRANT ALL PRIVILEGES ON DATABASE weavy_clone TO weavy_user;
-\q
-```
+### 5. Configure environment variables
 
-> **Tip**: Replace `your_secure_password` with an actual password you'll remember.
-
----
-
-### Step 4: Get your API keys
-
-You need API keys from 2 required services (and 2 optional ones):
-
-#### 4a. Clerk (REQUIRED — Authentication)
-
-1. Go to [https://dashboard.clerk.com](https://dashboard.clerk.com) and sign up / sign in
-2. Click **"Create application"**
-3. Give it a name (e.g., "Weavy Clone")
-4. Enable **Email** as a sign-in method
-5. Copy the **Publishable Key** (`pk_test_...`) and **Secret Key** (`sk_test_...`)
-
-#### 4b. Google Gemini (REQUIRED — AI/LLM)
-
-1. Go to [https://aistudio.google.com/apikey](https://aistudio.google.com/apikey)
-2. Click **"Create API Key"**
-3. Copy the key (`AIzaSy...`)
-
-> A Gemini API key is already included in `.env.local` for development. You can use it or replace it with your own.
-
-#### 4c. Transloadit (OPTIONAL — Image/Video processing)
-
-1. Go to [https://transloadit.com](https://transloadit.com) and sign up
-2. Navigate to **API Credentials** in Dashboard  
-3. Copy the **Auth Key** and **Auth Secret**
-
-> Without Transloadit, Crop Image and Extract Frame nodes will return the original file as a placeholder.
-
-#### 4d. Trigger.dev (OPTIONAL — Background task execution)
-
-1. Go to [https://trigger.dev](https://trigger.dev) and sign up
-2. Create a new project
-3. Copy the **Secret Key** (`tr_dev_...`)
-
-> Without Trigger.dev, tasks execute inline (synchronously). Everything still works.
-
----
-
-### Step 5: Configure environment variables
-
-Open `.env.local` in the project root and replace the placeholder values:
-
-```bash
-# Open in VS Code
-code .env.local
-
-# Or use any text editor
-nano .env.local
-```
-
-Update the file with your actual keys:
+Create/edit `.env.local` in the project root:
 
 ```env
-# Database — update user, password, and database name to match Step 3b
-DATABASE_URL="postgresql://weavy_user:your_secure_password@localhost:5432/weavy_clone"
+# Database
+DATABASE_URL="postgresql://weavy_user:your_password@localhost:5432/weavy_db"
 
-# Clerk — from Step 4a
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_XXXXXXXXXXXXX
-CLERK_SECRET_KEY=sk_test_XXXXXXXXXXXXX
+# Clerk (required)
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_XXXXX
+CLERK_SECRET_KEY=sk_test_XXXXX
 NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in
 NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up
 NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL=/dashboard
 NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL=/dashboard
 
-# Google Gemini — from Step 4b
+# Google Gemini (required)
 GOOGLE_GEMINI_API_KEY=AIzaSyXXXXXXXXXXXXXXXXXXXXX
 
-# Transloadit (optional) — from Step 4c
+# Transloadit (optional)
 NEXT_PUBLIC_TRANSLOADIT_KEY=your_transloadit_key
 TRANSLOADIT_AUTH_SECRET=your_transloadit_secret
 
-# Trigger.dev (optional) — from Step 4d
-TRIGGER_SECRET_KEY=your_trigger_secret_key
+# Trigger.dev (optional)
+TRIGGER_SECRET_KEY=tr_dev_XXXXX
 ```
 
-> **Important**: The `DATABASE_URL` must exactly match your PostgreSQL credentials from Step 3b.
-
----
-
-### Step 6: Push database schema
-
-This creates the database tables (User, Workflow, WorkflowRun, UserApiKey):
+### 6. Push database schema
 
 ```bash
 npx prisma db push
 ```
 
-Expected output:
-```
-Your database is now in sync with your Prisma schema.
-✔ Generated Prisma Client
-```
-
-> **If you get a connection error**: Double-check that PostgreSQL is running and your `DATABASE_URL` in `.env.local` is correct.
-
----
-
-### Step 7: Run the development server
+### 7. Run the dev server
 
 ```bash
 npm run dev
 ```
 
-Expected output:
-```
-▲ Next.js 16.1.6 (Turbopack)
-- Local:   http://localhost:3000
-```
+Open [http://localhost:3000](http://localhost:3000) — you'll see the animated landing page.
 
----
+### 8. Start building
 
-### Step 8: Open in browser
+Click **"Start Now"** → sign up via Clerk → land on the Dashboard → create workflows.
 
-Go to **[http://localhost:3000](http://localhost:3000)**
-
-You should see the landing page. Click **"Get Started"** to sign up via Clerk, then you'll land on the **Dashboard**.
-
----
-
-### Step 9 (Optional): Start Trigger.dev worker
-
-If you configured Trigger.dev in Step 4d, start the worker in a **separate terminal**:
+### 9. (Optional) Start Trigger.dev worker
 
 ```bash
 npx trigger.dev@latest dev
 ```
 
-This enables background task execution for LLM, Crop Image, and Extract Frame nodes.
-
 ---
 
-## Quick Start After Setup
-
-Once setup is complete, you only need 2 commands to run the project:
+## Quick Start (after initial setup)
 
 ```bash
-cd weavy-clone
 npm run dev
+# → http://localhost:3000
 ```
-
-Then open [http://localhost:3000](http://localhost:3000).
 
 ---
 
-## How to Use the App
+## How to Use
 
-1. **Sign up / Sign in** via Clerk on the landing page
-2. **Create a new workflow** from the Dashboard (click "+ New Workflow")
-3. **Drag nodes** from the left sidebar onto the canvas
-4. **Connect nodes** by dragging from output handles (bottom) to input handles (top)
-5. **Configure nodes** — type text, upload images/video, select LLM model
-6. **Click "Run"** to execute the entire workflow
-7. **View results** in the History panel on the right
-8. **Load the sample workflow** by clicking the ✨ sparkle button in the toolbar
+1. **Browse the landing page** — scroll through the animated marketing sections
+2. **Sign up / Sign in** — click "Start Now" or "Sign In" in the navbar
+3. **Create a workflow** — click "+ New Workflow" on the Dashboard
+4. **Drag nodes** from the left sidebar onto the canvas
+5. **Connect nodes** by dragging from output handles (bottom) to input handles (top)
+6. **Configure nodes** — type text, upload images/video, select an LLM model
+7. **Click "Run"** to execute the entire workflow (DAG order, parallel where possible)
+8. **View results** in the History panel on the right
+9. **Load the sample workflow** by clicking the ✨ sparkle button
 
 ### Keyboard Shortcuts
 
@@ -275,53 +203,11 @@ Then open [http://localhost:3000](http://localhost:3000).
 |----------|--------|
 | `Cmd + Z` | Undo |
 | `Cmd + Shift + Z` | Redo |
-| `Cmd + Y` | Redo (alternative) |
+| `Cmd + Y` | Redo (alt) |
 
 ### Settings — Bring Your Own API Keys
 
-Click the ⚙️ gear icon in the Dashboard header to go to **Settings**. You can add your own API keys for:
-
-- **Google Gemini** — Your key is used instead of the server default
-- **Transloadit** — For image/video processing
-- **Trigger.dev** — For background task execution
-
----
-
-## Common Issues & Troubleshooting
-
-### "publishableKey passed to Clerk is invalid"
-
-You haven't set valid Clerk keys. Go to [https://dashboard.clerk.com](https://dashboard.clerk.com) → API Keys, and update `.env.local`.
-
-### "Can't reach database server"
-
-1. Check PostgreSQL is running: `brew services list | grep postgres`
-2. Start it if needed: `brew services start postgresql@16`
-3. Verify your `DATABASE_URL` in `.env.local` matches your database credentials
-
-### "prisma db push" fails with "database does not exist"
-
-Create the database first (Step 3b):
-```bash
-psql postgres -c "CREATE DATABASE weavy_clone;"
-```
-
-### Port 3000 already in use
-
-```bash
-# Kill the process on port 3000
-lsof -ti:3000 | xargs kill -9
-
-# Or run on a different port
-npm run dev -- -p 3001
-```
-
-### Node modules issues
-
-```bash
-rm -rf node_modules package-lock.json
-npm install
-```
+Click ⚙️ in the Dashboard header → add personal keys for Gemini, Transloadit, or Trigger.dev.
 
 ---
 
@@ -330,60 +216,126 @@ npm install
 ```
 src/
 ├── app/
-│   ├── page.tsx                    # Landing page
-│   ├── dashboard/page.tsx          # Workflow list
-│   ├── settings/page.tsx           # API key management
-│   ├── workflow/[id]/page.tsx      # Workflow editor
+│   ├── page.tsx                        # Landing page (composes all marketing sections)
+│   ├── layout.tsx                      # Root layout (Geist fonts, ClerkProvider, light theme)
+│   ├── globals.css                     # Global styles, design tokens, scrollbar utilities
+│   ├── dashboard/page.tsx              # Workflow list
+│   ├── settings/page.tsx               # API key management
+│   ├── workflow/[id]/page.tsx          # Workflow editor
+│   ├── sign-in/[[...sign-in]]/page.tsx # Clerk sign-in
+│   ├── sign-up/[[...sign-up]]/page.tsx # Clerk sign-up
 │   └── api/
-│       ├── workflows/route.ts      # CRUD workflows
-│       ├── execute/route.ts        # Run full workflow (DAG)
-│       ├── trigger/route.ts        # Trigger individual tasks
-│       ├── upload/route.ts         # File upload
-│       └── settings/api-keys/      # User API key management
+│       ├── workflows/route.ts          # CRUD workflows (Zod validated)
+│       ├── execute/route.ts            # Run full workflow (DAG, parallel)
+│       ├── trigger/route.ts            # Trigger individual tasks
+│       ├── upload/route.ts             # File upload
+│       └── settings/api-keys/route.ts  # User API key management
+│
 ├── components/
-│   ├── nodes/                      # 6 node components
-│   └── workflow/                   # Editor, Canvas, Sidebar, History
+│   ├── SmoothScroll.tsx                # Lenis smooth scroll wrapper
+│   ├── marketing/                      # 10 landing page sections
+│   │   ├── Navbar.tsx                  # Fixed header, scroll-aware, Clerk auth
+│   │   ├── HeroSection.tsx             # Gradient hero with grid pattern
+│   │   ├── HeroWorkflow.tsx            # React Flow canvas in hero (6 card nodes)
+│   │   ├── MobileHeroCards.tsx         # Mobile card layout with SVG lines
+│   │   ├── StickyModelSection.tsx      # 15 AI models, scroll-driven sticky
+│   │   ├── ToolSection.tsx             # 11 scattered tool badges
+│   │   ├── EditorSection.tsx           # Parallax compositing preview
+│   │   ├── WorkflowTransition.tsx      # Workflow → App Mode transition
+│   │   ├── ExploreWorkflows.tsx        # Infinite carousel of workflows
+│   │   └── Footer.tsx                  # Dark footer with social links
+│   ├── nodes/                          # 6 workflow node components
+│   │   ├── TextNode.tsx
+│   │   ├── UploadImageNode.tsx
+│   │   ├── UploadVideoNode.tsx
+│   │   ├── LLMNode.tsx
+│   │   ├── CropImageNode.tsx
+│   │   └── ExtractFrameNode.tsx
+│   └── workflow/                       # Workflow editor components
+│       ├── WorkflowEditor.tsx
+│       ├── WorkflowCanvas.tsx
+│       ├── Sidebar.tsx
+│       └── HistoryPanel.tsx
+│
 ├── lib/
-│   ├── utils.ts                    # DAG, validation, helpers
-│   ├── prisma.ts                   # Database client
-│   ├── rate-limit.ts               # Token-bucket rate limiter
-│   ├── ssrf-protection.ts          # URL safety validation
-│   ├── api-keys.ts                 # User API key resolver
-│   └── sampleWorkflow.ts           # Pre-built workflow
-├── stores/workflowStore.ts         # Zustand + zundo store
-├── trigger/                        # Trigger.dev task definitions
-└── types/workflow.types.ts         # TypeScript interfaces
+│   ├── utils.ts                        # DAG validation, topological sort, parallel levels
+│   ├── prisma.ts                       # Database client singleton
+│   ├── rate-limit.ts                   # Token-bucket rate limiter
+│   ├── ssrf-protection.ts              # URL safety validation
+│   ├── api-keys.ts                     # User API key resolver
+│   ├── validations.ts                  # Zod schemas for all API routes
+│   └── sampleWorkflow.ts              # Pre-built demo workflow
+│
+├── stores/
+│   └── workflowStore.ts                # Zustand + zundo (undo/redo)
+│
+├── trigger/                            # Trigger.dev task definitions
+│   ├── llmTask.ts
+│   ├── cropImageTask.ts
+│   └── extractFrameTask.ts
+│
+└── types/
+    └── workflow.types.ts               # TypeScript interfaces
 ```
+
+---
+
+## Design System
+
+The landing page uses a **light theme** matching weavy.ai:
+
+| Token | Value | Usage |
+|-------|-------|-------|
+| Background | `#FBFBFB` | Page background |
+| Hero gradient | `#d6e8f1` → `#dce3e9` | Hero section |
+| Yellow CTA | `#FEF3C7` | "Start Now" buttons |
+| Dark sections | `#2b2d2a` / `#09090b` | Explore, Footer |
+| Footer sage | `#565955` | Footer container |
+| Fonts | Geist + Geist Mono | Body + code |
+
+The workflow editor uses dark-themed React Flow overrides for the canvas.
+
+---
 
 ## Node Types
 
 | Node | Inputs | Outputs | Description |
 |------|--------|---------|-------------|
 | Text | — | output (text) | Static text value |
-| Upload Image | — | output (image) | Upload images |
+| Upload Image | — | output (image) | Upload images (drag or click) |
 | Upload Video | — | output (video) | Upload videos |
 | Run Any LLM | system_prompt, user_message, images | output (text) | Gemini inference |
-| Crop Image | image_url, x%, y%, width%, height% | output (image) | Crop with percentages |
-| Extract Frame | video_url, timestamp | output (image) | Extract frame at time |
+| Crop Image | image_url, x%, y%, width%, height% | output (image) | Crop via Transloadit |
+| Extract Frame | video_url, timestamp | output (image) | Extract frame at timestamp |
 
-## Other Commands
+---
+
+## Commands
 
 ```bash
-# Build for production
-npm run build
-
-# Start production server
-npm start
-
-# Run linter
-npm run lint
-
-# Open Prisma Studio (GUI for database)
-npx prisma studio
-
-# Reset database (WARNING: deletes all data)
-npx prisma db push --force-reset
+npm run dev          # Start dev server (Turbopack)
+npm run build        # Production build
+npm start            # Start production server
+npm run lint         # Run ESLint
+npx prisma studio    # Open database GUI
+npx prisma db push   # Sync schema to database
+npx prisma db push --force-reset  # Reset database (deletes all data)
 ```
+
+---
+
+## Troubleshooting
+
+| Problem | Solution |
+|---------|----------|
+| "publishableKey passed to Clerk is invalid" | Update Clerk keys in `.env.local` from [dashboard.clerk.com](https://dashboard.clerk.com) |
+| "Can't reach database server" | Ensure PostgreSQL is running: `brew services start postgresql@16` |
+| "database does not exist" | `psql postgres -c "CREATE DATABASE weavy_db;"` |
+| Port 3000 in use | `lsof -ti:3000 \| xargs kill -9` or `npm run dev -- -p 3001` |
+| Node modules issues | `rm -rf node_modules package-lock.json && npm install` |
+| Images not loading on landing page | Check `next.config.ts` has `cdn.prod.website-files.com` in remote patterns |
+
+---
 
 ## License
 

@@ -12,25 +12,41 @@
 4. [Project Structure — Where Everything Lives](#4-project-structure--where-everything-lives)
 5. [The Foundation — Next.js App Setup](#5-the-foundation--nextjs-app-setup)
 6. [Styling — Making It Look Good](#6-styling--making-it-look-good)
-7. [Authentication — Who Is the User?](#7-authentication--who-is-the-user)
-8. [Database — Storing Data Permanently](#8-database--storing-data-permanently)
-9. [State Management — Remembering Things in the Browser](#9-state-management--remembering-things-in-the-browser)
-10. [The Workflow Canvas — Drag & Drop Nodes](#10-the-workflow-canvas--drag--drop-nodes)
-11. [The 6 Node Types — What Each Node Does](#11-the-6-node-types--what-each-node-does)
-12. [API Routes — The Backend Logic](#12-api-routes--the-backend-logic)
-13. [AI Integration — Google Gemini](#13-ai-integration--google-gemini)
-14. [Task Execution — Running the Workflow](#14-task-execution--running-the-workflow)
-15. [Security Features](#15-security-features)
-16. [Putting It All Together — The Full Flow](#16-putting-it-all-together--the-full-flow)
-17. [Glossary of Terms](#17-glossary-of-terms)
+7. [The Marketing Landing Page — 10 Animated Sections](#7-the-marketing-landing-page--10-animated-sections)
+8. [Authentication — Who Is the User?](#8-authentication--who-is-the-user)
+9. [Database — Storing Data Permanently](#9-database--storing-data-permanently)
+10. [State Management — Remembering Things in the Browser](#10-state-management--remembering-things-in-the-browser)
+11. [The Workflow Canvas — Drag & Drop Nodes](#11-the-workflow-canvas--drag--drop-nodes)
+12. [The 6 Node Types — What Each Node Does](#12-the-6-node-types--what-each-node-does)
+13. [API Routes — The Backend Logic](#13-api-routes--the-backend-logic)
+14. [AI Integration — Google Gemini](#14-ai-integration--google-gemini)
+15. [Task Execution — Running the Workflow](#15-task-execution--running-the-workflow)
+16. [Security Features](#16-security-features)
+17. [Putting It All Together — The Full Flow](#17-putting-it-all-together--the-full-flow)
+18. [Glossary of Terms](#18-glossary-of-terms)
 
 ---
 
 ## 1. What Are We Building?
 
-**Weavy.ai** is a visual tool where you build AI workflows by connecting boxes (called "nodes") on a canvas. Think of it like a flowchart maker, but each box actually DOES something — one box might hold text, another uploads an image, another runs AI to generate content.
+**Weavy.ai** is a visual tool for building AI workflows by connecting boxes (called "nodes") on a canvas. Think of it like a flowchart maker, but each box actually DOES something — one box might hold text, another uploads an image, another runs AI to generate content.
 
-We built a **clone** (a copy) of this tool. Here's what it does:
+We built a **pixel-perfect clone** of this tool. Our clone has two major parts:
+
+### Part 1: The Marketing Landing Page
+
+A fully animated, scroll-driven landing page that recreates the real weavy.ai homepage. It features:
+- Smooth scrolling (Lenis)
+- Scroll-aware animated navbar
+- An interactive React Flow hero canvas
+- A sticky section showcasing 15 AI models
+- Parallax compositing editor preview
+- Auto-scrolling workflow carousel
+- All matched to real weavy.ai design, content, and imagery
+
+### Part 2: The Workflow Builder
+
+The actual application where users build AI workflows:
 
 ```
 User signs up → Creates a workflow → Drags nodes onto canvas → 
@@ -150,7 +166,10 @@ A **framework** is a pre-built structure that gives you a head start. Instead of
 
 ### The Canvas: React Flow (@xyflow/react)
 
-This is the library that gives us the **drag-and-drop canvas** with nodes and edges (connecting lines).
+This is the library that gives us the **drag-and-drop canvas** with nodes and edges (connecting lines). We use it in TWO places:
+
+1. **The Workflow Editor** — where users build real AI workflows
+2. **The Hero Section** — on the landing page, a decorative interactive canvas that shows off a sample workflow with custom card-style nodes
 
 Without React Flow, we'd have to write thousands of lines of code to handle:
 - Dragging boxes around
@@ -160,6 +179,63 @@ Without React Flow, we'd have to write thousands of lines of code to handle:
 - The minimap in the corner
 
 React Flow gives us all of this out of the box. We just define what each node LOOKS like.
+
+---
+
+### Animations: Framer Motion
+
+**Framer Motion** is the animation library used throughout the landing page. It provides:
+
+```tsx
+// Animate an element when it enters the viewport:
+<motion.div
+  initial={{ opacity: 0, y: 50 }}     // Start invisible, 50px below
+  whileInView={{ opacity: 1, y: 0 }}   // Fade in and slide up when visible
+  transition={{ duration: 0.8 }}        // Take 0.8 seconds
+>
+  <h2>Hello World</h2>
+</motion.div>
+```
+
+We use Framer Motion for:
+- **Scroll-aware navbar** — shrinks the "Start Now" button as you scroll
+- **Section reveals** — elements fade/slide in when you scroll to them
+- **Parallax effects** — editor preview moves opposite to mouse position
+- **AnimatePresence** — smooth transitions between "Workflow" and "App Mode" views
+- **Carousel motion** — infinite auto-scrolling workflow cards
+
+---
+
+### Smooth Scrolling: Lenis
+
+**Lenis** provides buttery-smooth scrolling across the entire page. Instead of the browser's native jerky scroll behavior, Lenis interpolates scroll position with easing:
+
+```tsx
+// SmoothScroll.tsx — wraps the entire page
+const lenis = new Lenis({ lerp: 0.1 });  // 0.1 = smooth interpolation factor
+```
+
+Without Lenis, the scroll-driven sticky sections and parallax effects would feel choppy.
+
+---
+
+### Validation: Zod
+
+**Zod** validates data shapes at runtime. Every API route validates incoming requests:
+
+```typescript
+// Example: validate a workflow save request
+const WorkflowSchema = z.object({
+  name: z.string().min(1).max(200),
+  nodes: z.array(z.any()),
+  edges: z.array(z.any()),
+});
+
+// If the data doesn't match, Zod throws a detailed error
+const data = WorkflowSchema.parse(requestBody);
+```
+
+This prevents malformed requests from reaching the database or AI services.
 
 ---
 
@@ -281,54 +357,67 @@ weavy-clone/
 │
 ├── 📄 package.json          ← Lists all dependencies (libraries) and scripts
 ├── 📄 tsconfig.json          ← TypeScript configuration
-├── 📄 next.config.ts         ← Next.js configuration
-├── 📄 tailwind.config.ts     ← Tailwind CSS configuration (if customized)
+├── 📄 next.config.ts         ← Next.js configuration (remote image patterns, etc.)
 ├── 📄 .env.local             ← SECRET keys (never commit to Git!)
 ├── 📄 trigger.config.ts      ← Trigger.dev configuration
 │
 ├── 📁 prisma/
-│   └── 📄 schema.prisma      ← Database table definitions
+│   └── 📄 schema.prisma      ← Database table definitions (4 models)
 │
 ├── 📁 public/
-│   └── 📁 uploads/           ← User-uploaded files (images, videos)
+│   ├── 📄 base.png            ← Editor section compositing base image
+│   └── 📄 wave.png            ← Workflow transition output image
 │
 └── 📁 src/                   ← ALL source code lives here
     │
     ├── 📄 middleware.ts       ← Runs BEFORE every request (auth check)
     │
     ├── 📁 app/               ← Pages and API routes (Next.js App Router)
-    │   ├── 📄 layout.tsx      ← Root layout (wraps every page)
-    │   ├── 📄 page.tsx        ← Landing page (/)
-    │   ├── 📄 globals.css     ← Global styles
+    │   ├── 📄 layout.tsx      ← Root layout (Geist fonts, ClerkProvider, light theme)
+    │   ├── 📄 page.tsx        ← Landing page (composes all marketing sections)
+    │   ├── 📄 globals.css     ← Global styles + design tokens
     │   │
-    │   ├── 📁 sign-in/        ← /sign-in page
-    │   ├── 📁 sign-up/        ← /sign-up page
-    │   ├── 📁 dashboard/      ← /dashboard page
+    │   ├── 📁 sign-in/        ← /sign-in page (Clerk)
+    │   ├── 📁 sign-up/        ← /sign-up page (Clerk)
+    │   ├── 📁 dashboard/      ← /dashboard page (workflow list)
     │   ├── 📁 settings/       ← /settings page (API keys)
     │   ├── 📁 workflow/
     │   │   └── 📁 [id]/       ← /workflow/:id page (dynamic route)
     │   │
     │   └── 📁 api/            ← Backend API routes
     │       ├── 📁 workflows/   ← CRUD operations for workflows
-    │       ├── 📁 execute/     ← Run a complete workflow
+    │       ├── 📁 execute/     ← Run a complete workflow (DAG)
     │       ├── 📁 trigger/     ← Run individual tasks
     │       ├── 📁 upload/      ← Handle file uploads
     │       └── 📁 settings/    ← API key management
     │
     ├── 📁 components/         ← Reusable UI pieces
+    │   ├── 📄 SmoothScroll.tsx ← Lenis smooth scroll wrapper
+    │   ├── 📁 marketing/      ← 10 landing page sections
+    │   │   ├── 📄 Navbar.tsx             ← Fixed header, scroll-aware CTA
+    │   │   ├── 📄 HeroSection.tsx        ← Gradient hero with typography
+    │   │   ├── 📄 HeroWorkflow.tsx       ← React Flow canvas (hero)
+    │   │   ├── 📄 MobileHeroCards.tsx    ← Mobile card layout
+    │   │   ├── 📄 StickyModelSection.tsx ← 15 AI models, sticky scroll
+    │   │   ├── 📄 ToolSection.tsx        ← 11 scattered tool badges
+    │   │   ├── 📄 EditorSection.tsx      ← Parallax compositing preview
+    │   │   ├── 📄 WorkflowTransition.tsx ← Workflow → App Mode toggle
+    │   │   ├── 📄 ExploreWorkflows.tsx   ← Auto-scroll carousel
+    │   │   └── 📄 Footer.tsx            ← Dark sage footer
     │   ├── 📁 nodes/          ← The 6 node type components
     │   └── 📁 workflow/       ← Editor, Canvas, Sidebar, History
     │
     ├── 📁 lib/                ← Utility functions and configs
-    │   ├── 📄 utils.ts        ← Helper functions (DAG validation, etc.)
-    │   ├── 📄 prisma.ts       ← Database connection
-    │   ├── 📄 rate-limit.ts   ← Rate limiting logic
+    │   ├── 📄 utils.ts        ← DAG validation, topological sort, parallel levels
+    │   ├── 📄 prisma.ts       ← Database connection singleton
+    │   ├── 📄 rate-limit.ts   ← Token-bucket rate limiting
     │   ├── 📄 ssrf-protection.ts ← URL safety validation
     │   ├── 📄 api-keys.ts     ← User API key resolver
+    │   ├── 📄 validations.ts  ← Zod schemas for all API routes
     │   └── 📄 sampleWorkflow.ts  ← Pre-built demo workflow
     │
     ├── 📁 stores/
-    │   └── 📄 workflowStore.ts ← Zustand store (central state)
+    │   └── 📄 workflowStore.ts ← Zustand + zundo store (undo/redo)
     │
     ├── 📁 trigger/            ← Background task definitions
     │   ├── 📄 llmTask.ts
@@ -363,13 +452,18 @@ Every page in our app is wrapped in this layout. Think of it as a picture frame 
 ```tsx
 // src/app/layout.tsx (simplified)
 
-import { ClerkProvider } from '@clerk/nextjs';  // Auth wrapper
+import { ClerkProvider } from '@clerk/nextjs';
+import { Geist, Geist_Mono } from 'next/font/google';
+
+const geistSans = Geist({ subsets: ['latin'], variable: '--font-geist-sans' });
+const geistMono = Geist_Mono({ subsets: ['latin'], variable: '--font-geist-mono' });
 
 export default function RootLayout({ children }) {
   return (
-    <ClerkProvider>        {/* Provides auth to the entire app */}
-      <html className="dark"> {/* Dark mode */}
-        <body>
+    <ClerkProvider>          {/* Provides auth to the entire app */}
+      <html lang="en">
+        <body className={`${geistSans.variable} ${geistMono.variable}
+                          antialiased bg-[#FBFBFB]`}>
           {children}         {/* ← Each page gets inserted HERE */}
         </body>
       </html>
@@ -380,8 +474,9 @@ export default function RootLayout({ children }) {
 
 **What's happening:**
 1. `ClerkProvider` wraps everything so any page can check if the user is logged in
-2. `className="dark"` sets the entire app to dark mode
-3. `{children}` is a placeholder — when you visit `/dashboard`, the dashboard page is inserted here
+2. We use **Geist** and **Geist Mono** fonts (the same fonts used on the real weavy.ai)
+3. The body has a light background (`#FBFBFB`) — matching weavy.ai's clean, light design
+4. `{children}` is a placeholder — when you visit `/dashboard`, the dashboard page is inserted here
 
 ### `middleware.ts` — The Bouncer
 
@@ -480,41 +575,46 @@ export default function Counter() {
 
 ### Our Design System
 
-We use a consistent dark theme throughout the app:
+The landing page uses a **light theme** that matches the real weavy.ai:
 
 ```
-Background:     #0a0a0a  (almost black)
-Card/Surface:   #141414  (dark gray)
-Border:         #222222  (subtle gray)
-Accent:         #8b5cf6  (purple — the brand color)
-Text:           #ffffff  (white)
-Text (muted):   #a0a0a0  (light gray)
-Font:           Inter    (clean, modern)
+Page Background:   #FBFBFB  (off-white)
+Hero Gradient:     #d6e8f1 → #dce3e9  (soft blue)
+Yellow CTA:        #FEF3C7  (warm yellow for "Start Now" buttons)
+Dark Sections:     #2b2d2a / #09090b  (for Explore, Footer)
+Footer Sage:       #565955  (sage green container)
+Text (dark):       #1a1a1a / #09090b  (near-black)
+Text (light):      #ffffff  (on dark backgrounds)
+Text (muted):      #6b7280  (gray descriptions)
+Fonts:             Geist (body) + Geist Mono (code)
 ```
+
+The **workflow editor** uses dark-themed React Flow overrides — so the canvas is dark while the rest of the app is light.
 
 ### How Tailwind Classes Map to Design
 
 ```tsx
-<div className="bg-[#0a0a0a]">        {/* Background: almost black */}
-  <div className="bg-[#141414]          {/* Card: dark gray */}
-              border border-[#222222]   {/* Border: subtle */}
-              rounded-xl                {/* Rounded corners: extra large */}
-              p-4">                     {/* Padding: 16px all sides */}
-    <h2 className="text-white            {/* Text: white */}
-                text-lg                {/* Font size: large */}
-                font-semibold">        {/* Font weight: semi-bold */}
+<div className="bg-[#FBFBFB]">              {/* Page background: off-white */}
+  <div className="bg-white                    {/* Card: white */}
+              border border-gray-200          {/* Subtle gray border */}
+              rounded-2xl                      {/* Large rounded corners */}
+              p-6">                            {/* Padding: 24px */}
+    <h2 className="text-[#09090b]              {/* Text: near-black */}
+                text-3xl                       {/* Font size: 30px */}
+                font-semibold                  {/* Font weight: 600 */}
+                tracking-tight">               {/* Tight letter spacing */}
       Title
     </h2>
-    <p className="text-[#a0a0a0] text-sm">  {/* Muted gray, small */}
+    <p className="text-gray-500 text-sm">      {/* Muted gray, small */}
       Description
     </p>
-    <button className="bg-[#8b5cf6]     {/* Purple background */}
-                    text-white          {/* White text */}
-                    px-4 py-2           {/* Padding */}
-                    rounded-lg          {/* Rounded */}
-                    hover:bg-[#7c3aed]  {/* Darker purple on hover */}
-                    transition-colors"> {/* Smooth color transition */}
-      Click Me
+    <button className="bg-[#FEF3C7]           {/* Yellow background */}
+                    text-[#09090b]             {/* Dark text */}
+                    px-6 py-3                  {/* Generous padding */}
+                    rounded-full               {/* Pill shape */}
+                    hover:scale-105            {/* Grow on hover */}
+                    transition-transform">     {/* Smooth transition */}
+      Start Now
     </button>
   </div>
 </div>
@@ -534,7 +634,212 @@ Tailwind makes responsive design easy with breakpoints:
 
 ---
 
-## 7. Authentication — Who Is the User?
+## 7. The Marketing Landing Page — 10 Animated Sections
+
+The landing page (`src/app/page.tsx`) composes 10 marketing components inside a `SmoothScroll` wrapper. Each section is a separate React component in `src/components/marketing/`. Here's how they all work:
+
+### Page Composition
+
+```tsx
+// src/app/page.tsx (simplified)
+import SmoothScroll from '@/components/SmoothScroll';
+import Navbar from '@/components/marketing/Navbar';
+import HeroSection from '@/components/marketing/HeroSection';
+// ... all 10 components
+
+export default function Home() {
+  return (
+    <SmoothScroll>
+      <Navbar />
+      <HeroSection />
+      <StickyModelSection />
+      <ToolSection />
+      <EditorSection />
+      <WorkflowTransition />
+      <ExploreWorkflows />
+      <Footer />
+    </SmoothScroll>
+  );
+}
+```
+
+### Component 1: SmoothScroll (wrapper)
+
+Wraps the entire page with Lenis for buttery-smooth scroll behavior. Without it, scroll-driven animations would feel jerky.
+
+```tsx
+// Initializes Lenis and integrates with Framer Motion's scroll system
+const lenis = new Lenis({ lerp: 0.1 });
+```
+
+### Component 2: Navbar
+
+A fixed header that reacts to scroll position:
+
+```
+┌──────────────────────────────────────────────────────────┐
+│  weavy   COLLECTIVE  ENTERPRISE  PRICING  REQUEST A DEMO │
+│                                          SIGN IN [Start] │
+└──────────────────────────────────────────────────────────┘
+```
+
+- Uses `useMotionValueEvent` from Framer Motion to track `scrollY`
+- The yellow "Start Now" pill shrinks from wide to compact as you scroll
+- Detects Clerk auth state — shows "SIGN IN" if logged out, links to dashboard if logged in
+- Semi-transparent blur backdrop (`backdrop-blur-md`)
+
+### Component 3: HeroSection
+
+The first visual section with large typography:
+
+```
+┌──────────────────────────────────────────────────────────┐
+│                    gradient bg (#d6e8f1)                  │
+│                    + grid pattern overlay                 │
+│                                                          │
+│                        Weavy                             │
+│                  Artistic Intelligence                    │
+│                                                          │
+│              [Run any visionary AI model]                 │
+│                                                          │
+│          ┌──────────────────────────────────┐             │
+│          │    HeroWorkflow (React Flow)     │             │
+│          │  ┌───┐  ┌───┐  ┌───┐            │             │
+│          │  │img│──│LLM│──│txt│            │             │
+│          │  └───┘  └───┘  └───┘            │             │
+│          └──────────────────────────────────┘             │
+└──────────────────────────────────────────────────────────┘
+```
+
+- `HeroWorkflow` renders a non-interactive React Flow canvas with 6 custom card-style nodes
+- `MobileHeroCards` shows a vertical stacked card layout on mobile (hidden on desktop)
+
+### Component 4: StickyModelSection
+
+A 400vh tall scroll-driven section where a card sticks to the center of the viewport and AI model names cycle through as you scroll:
+
+```
+Scroll position 0%  → GPT img 1
+Scroll position 7%  → Wan
+Scroll position 14% → SD 3.5
+...
+Scroll position 93% → Bria
+```
+
+**How it works:**
+1. The section is 400vh tall (4× viewport height)
+2. Inside, a `sticky top-0` container locks the card in place
+3. `useScroll` + `useTransform` from Framer Motion map scroll progress (0→1) to the active model index (0→14)
+4. Each model has a background image or video loaded from the weavy.ai CDN
+5. The card flips orientation at certain scroll thresholds
+
+All **15 AI models**: GPT img 1, Wan, SD 3.5, Runway Gen-4, Imagen 3, Veo 3, Recraft V3, Kling, Flux Pro 1.1 Ultra, Minimax video, Ideogram V3, Luma ray 2, Minimax image 01, Hunyuan, Bria.
+
+### Component 5: ToolSection
+
+Scattered tool badges around a central hero image:
+
+```
+                 Rotate
+          Crop          Blur
+     Liquify    [CENTER IMG]    Text
+          Color         Overlay
+     Background   Upscale  Resize
+                 Relight
+```
+
+- Each tool badge is absolutely positioned using percentage coordinates
+- Uses `motion.img` (not Next.js `Image`) for the CDN-hosted images
+- Images use `@2x.avif` format from the weavy.ai Webflow CDN
+
+### Component 6: EditorSection
+
+"Control the Outcome" section with a parallax compositing preview:
+
+```
+┌──────────────────────────────────────────────────────────┐
+│              Control the Outcome                          │
+│   Layers, type, and blends — all the tools to bring      │
+│   your wildest ideas to life.                             │
+│                                                          │
+│        ┌─────────────────────────┐                       │
+│        │    base.png (photo)     │  ← moves with mouse   │
+│        │  + Astro overlay        │  ← parallax offset    │
+│        │  + "ASTRO" text         │                       │
+│        └─────────────────────────┘                       │
+└──────────────────────────────────────────────────────────┘
+```
+
+- Tracks mouse position via `onMouseMove`
+- Calculates parallax offset: each layer moves at different speeds
+- Creates a compositing preview effect (base photo + overlay + text)
+
+### Component 7: WorkflowTransition
+
+A 200vh scroll-driven section that toggles between "Workflow" and "App Mode":
+
+- Uses `useScroll` to detect scroll progress
+- Before 50% → shows "From Workflow" view (node-based editor with floating nodes)
+- After 50% → shows "to App Mode" view (prompt input with output panel)
+- `AnimatePresence` handles smooth crossfade between the two views
+- Floating nodes bounce with CSS keyframe animations
+
+### Component 8: ExploreWorkflows
+
+Auto-scrolling infinite carousel on a dark background:
+
+```
+┌──────────────────────────────────────────────────────────┐
+│ bg: #2b2d2a                                              │
+│                 Explore Our Workflows                     │
+│    Browse and remix community favorites                   │
+│                                                          │
+│  ←← [Wan Lora] [Multiple] [Inflate] [Relight] [Logo] →→ │
+│     auto-scrolling, infinite loop                         │
+│                                                          │
+│                    [Start Now]                             │
+└──────────────────────────────────────────────────────────┘
+```
+
+- Duplicates the card array for seamless infinite scroll
+- Uses CSS `@keyframes scroll` animation (not JS-driven)
+- Cards show workflow thumbnails from the weavy.ai CDN
+
+### Component 9: Footer
+
+Dark sage-green footer with navigation and social links:
+
+```
+┌──────────────────────────────────────────────────────────┐
+│ bg: #2b2d2a                                              │
+│  ┌──────────────────────────────────────────────────────┐ │
+│  │ bg: #565955 (sage container)                         │ │
+│  │                                                      │ │
+│  │  Artificial Intelligence + Human Creativity           │ │
+│  │                                                      │ │
+│  │  weavy description text                               │ │
+│  │                                                      │ │
+│  │  Get Started    Company      Connect    Resources     │ │
+│  │  • Start Now    • About Us   • Discord  • Help Center │ │
+│  │  • Enterprise   • Careers    • X        • Blog        │ │
+│  │  • Collective   • Press      • LinkedIn • Tutorials   │ │
+│  │  • Pricing                   • Instagram • Community  │ │
+│  │                                                      │ │
+│  │  [LinkedIn] [Instagram] [Discord]  © 2025 weavy inc   │ │
+│  └──────────────────────────────────────────────────────┘ │
+│                                                          │
+│            ┌──────────────────────────────┐               │
+│            │       Start Now              │  ← HUGE CTA   │
+│            └──────────────────────────────┘               │
+└──────────────────────────────────────────────────────────┘
+```
+
+- Social icons link to real weavy.ai social profiles
+- The large "Start Now" CTA at the bottom links to `/sign-up`
+
+---
+
+## 8. Authentication — Who Is the User?
 
 ### How Clerk Works
 
@@ -601,7 +906,7 @@ import { UserButton } from '@clerk/nextjs';
 
 ---
 
-## 8. Database — Storing Data Permanently
+## 9. Database — Storing Data Permanently
 
 ### The Schema — Defining Tables
 
@@ -691,7 +996,7 @@ Storing this as JSON in one column is much simpler than creating separate tables
 
 ---
 
-## 9. State Management — Remembering Things in the Browser
+## 10. State Management — Remembering Things in the Browser
 
 ### The Problem
 
@@ -790,7 +1095,7 @@ useWorkflowStore.temporal.getState().redo();
 
 ---
 
-## 10. The Workflow Canvas — Drag & Drop Nodes
+## 11. The Workflow Canvas — Drag & Drop Nodes
 
 ### How React Flow Works
 
@@ -887,7 +1192,7 @@ onClick={() => addNode(type)}
 
 ---
 
-## 11. The 6 Node Types — What Each Node Does
+## 12. The 6 Node Types — What Each Node Does
 
 Each node is a React component. Here's a simplified look at each:
 
@@ -995,7 +1300,7 @@ This is the most complex node:
 
 ---
 
-## 12. API Routes — The Backend Logic
+## 13. API Routes — The Backend Logic
 
 ### What is an API Route?
 
@@ -1047,7 +1352,7 @@ CRUD for user's personal API keys (Gemini, Transloadit, Trigger.dev).
 
 ---
 
-## 13. AI Integration — Google Gemini
+## 14. AI Integration — Google Gemini
 
 ### What is Gemini?
 
@@ -1097,7 +1402,7 @@ This is handled by `src/lib/api-keys.ts`.
 
 ---
 
-## 14. Task Execution — Running the Workflow
+## 15. Task Execution — Running the Workflow
 
 ### What is a DAG?
 
@@ -1176,7 +1481,7 @@ Without Trigger.dev (our fallback):
 
 ---
 
-## 15. Security Features
+## 16. Security Features
 
 ### Rate Limiting — Why and How
 
@@ -1219,7 +1524,7 @@ This is the cloud metadata endpoint — if your server fetches it, the attacker 
 
 ---
 
-## 16. Putting It All Together — The Full Flow
+## 17. Putting It All Together — The Full Flow
 
 Here's what happens when you use the app from start to finish:
 
@@ -1227,9 +1532,26 @@ Here's what happens when you use the app from start to finish:
 1. USER VISITS http://localhost:3000
    │
    ├─ middleware.ts checks: Is "/" public? YES → show landing page
-   ├─ app/page.tsx renders: Hero section, features, footer
+   ├─ SmoothScroll wraps the entire page with Lenis
+   ├─ app/page.tsx renders all 10 marketing sections:
+   │   ├─ Navbar (scroll-aware, Clerk auth detection)
+   │   ├─ HeroSection (gradient bg + React Flow canvas)
+   │   ├─ StickyModelSection (15 AI models, scroll-driven)
+   │   ├─ ToolSection (scattered badges)
+   │   ├─ EditorSection (parallax preview)
+   │   ├─ WorkflowTransition (Workflow → App Mode)
+   │   ├─ ExploreWorkflows (infinite carousel)
+   │   └─ Footer (dark sage, social links)
    │
-2. USER CLICKS "Get Started"
+2. USER SCROLLS THROUGH LANDING PAGE
+   │
+   ├─ Lenis provides smooth scroll interpolation
+   ├─ Framer Motion tracks scroll position for:
+   │   ├─ Navbar CTA shrinking
+   │   ├─ StickyModelSection model cycling (15 models)
+   │   └─ WorkflowTransition view toggling
+   │
+3. USER CLICKS "Start Now" (yellow CTA)
    │
    ├─ Redirected to /sign-up
    ├─ Clerk renders sign-up form
@@ -1237,7 +1559,7 @@ Here's what happens when you use the app from start to finish:
    ├─ Clerk sets session cookie
    ├─ Redirected to /dashboard
    │
-3. DASHBOARD LOADS
+4. DASHBOARD LOADS
    │
    ├─ middleware.ts checks: Is user logged in? YES → continue
    ├─ dashboard/page.tsx (SERVER component):
@@ -1246,66 +1568,68 @@ Here's what happens when you use the app from start to finish:
    │   ├─ Loads all workflows from database
    │   └─ Renders the page with stats and workflow list
    │
-4. USER CLICKS "+ New Workflow"
+5. USER CLICKS "+ New Workflow"
    │
    ├─ Navigates to /workflow/new
    ├─ workflow/[id]/page.tsx loads:
    │   └─ id is "new" → creates empty WorkflowEditor
    │
-5. USER DRAGS A TEXT NODE FROM SIDEBAR
+6. USER DRAGS A TEXT NODE FROM SIDEBAR
    │
    ├─ Sidebar.onClick calls store.addNode('text')
    ├─ Store creates: { id: "node_1", type: "text", data: { text: "" } }
    ├─ Canvas re-renders with the new node
    │
-6. USER TYPES IN THE TEXT NODE
+7. USER TYPES IN THE TEXT NODE
    │
    ├─ TextNode.onChange calls store.updateNodeData("node_1", { text: "..." })
    ├─ zundo records this state change for undo/redo
    │
-7. USER CONNECTS TWO NODES
+8. USER CONNECTS TWO NODES
    │
    ├─ React Flow detects drag from output handle to input handle
    ├─ onConnect creates: { source: "node_1", target: "node_2", ... }
    ├─ Connection validation checks: is this type-compatible?
    │
-8. USER CLICKS "Save"
+9. USER CLICKS "Save"
    │
    ├─ WorkflowEditor sends POST /api/workflows
-   │   Body: { name, nodes, edges }
+   │   Body: { name, nodes, edges } → validated by Zod schema
    ├─ API route creates record in PostgreSQL via Prisma
    ├─ Returns { id: "wf_001" }
    ├─ URL changes to /workflow/wf_001
    │
-9. USER CLICKS "Run"
-   │
-   ├─ WorkflowEditor sends POST /api/execute
-   │   Body: { workflowId, nodes, edges }
-   │
-   ├─ Server validates DAG
-   ├─ Server computes topological order
-   ├─ Server creates WorkflowRun record
-   │
-   ├─ For each node:
-   │   ├─ Text → immediately return { text: "..." }
-   │   ├─ LLM → call Gemini API → return { output: "AI response..." }
-   │   └─ Each node's output becomes the next node's input
-   │
-   ├─ Server saves all results to WorkflowRun record
-   ├─ Returns results to frontend
-   │
-   └─ HistoryPanel shows the run with per-node results
+10. USER CLICKS "Run"
+    │
+    ├─ WorkflowEditor sends POST /api/execute
+    │   Body: { workflowId, nodes, edges }
+    │
+    ├─ Server validates DAG (no cycles)
+    ├─ Server computes execution levels (parallel groups)
+    ├─ Server creates WorkflowRun record
+    │
+    ├─ For each level (nodes at same level run in parallel):
+    │   ├─ Text → immediately return { text: "..." }
+    │   ├─ LLM → call Gemini API → return { output: "AI response..." }
+    │   └─ Each node's output becomes the next level's input
+    │
+    ├─ Server saves all results to WorkflowRun record
+    ├─ Returns results to frontend
+    │
+    └─ HistoryPanel shows the run with per-node results
 ```
 
 ---
 
-## 17. Glossary of Terms
+## 18. Glossary of Terms
 
 | Term | Meaning |
 |------|---------|
+| **AnimatePresence** | Framer Motion component that animates elements as they mount/unmount |
 | **API** | A way for programs to communicate with each other |
 | **API Key** | A secret password that lets you use a third-party service |
 | **Backend** | Server-side code that handles data and logic |
+| **CDN** | Content Delivery Network — serves images/files fast from edge servers |
 | **Client** | The browser / frontend |
 | **Component** | A reusable piece of UI (like a Lego block) |
 | **CRUD** | Create, Read, Update, Delete — the 4 basic operations |
@@ -1314,27 +1638,33 @@ Here's what happens when you use the app from start to finish:
 | **Edge** | A connecting line between two nodes |
 | **Endpoint** | A URL that the backend listens on (e.g., `/api/workflows`) |
 | **Environment Variable** | A secret value stored outside the code (`.env.local`) |
+| **Framer Motion** | Animation library for React (scroll, parallax, transitions) |
 | **Framework** | A pre-built code structure (Next.js, React) |
 | **Frontend** | Client-side code that runs in the browser |
 | **Handle** | The small circle on a node where edges connect |
 | **Hook** | A React function that lets you use features like state (`useState`) |
 | **HTTP** | The protocol browsers use to communicate with servers |
 | **JSON** | JavaScript Object Notation — a data format (`{ "key": "value" }`) |
+| **Lenis** | Smooth scrolling library — interpolates scroll position |
 | **LLM** | Large Language Model — AI that generates text (Gemini, ChatGPT) |
 | **Middleware** | Code that runs between a request and its handler |
 | **Node (React Flow)** | A box on the workflow canvas |
 | **Node.js** | JavaScript runtime for servers (lets JS run outside browsers) |
 | **npm** | Node Package Manager — installs JavaScript libraries |
 | **ORM** | Object-Relational Mapper — translates code to database queries |
+| **Parallax** | Visual effect where layers move at different speeds |
 | **Props** | Data passed from parent component to child component |
 | **Route** | A URL path that maps to a page or API endpoint |
 | **Schema** | Definition of database tables and their columns |
+| **Scroll-driven** | Animations/transitions triggered by scroll position, not time |
 | **Server** | A computer that handles requests from browsers |
 | **SSRF** | Server-Side Request Forgery — a security attack |
 | **State** | Data that changes over time in your app |
+| **Sticky** | CSS `position: sticky` — element sticks in place while scrolling |
 | **Store** | A central place that holds state (Zustand in our app) |
 | **Topological Sort** | Algorithm to order nodes so dependencies come first |
 | **TypeScript** | JavaScript with type checking |
+| **Zod** | Runtime validation library for TypeScript |
 
 ---
 

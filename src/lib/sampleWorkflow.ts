@@ -173,7 +173,7 @@ export const sampleEdges: Edge[] = [
     source: 'node-llm-1',
     target: 'node-llm-2',
     sourceHandle: 'output',
-    targetHandle: 'images',
+    targetHandle: 'user_message',
     animated: true,
     style: { stroke: '#8b5cf6' },
   },

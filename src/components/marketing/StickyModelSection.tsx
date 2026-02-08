@@ -118,6 +118,7 @@ export default function StickyModelSection() {
               animate={{ opacity: activeIndex === idx ? 1 : 0 }}
               transition={{ duration: 0.5, ease: "linear" }}
               className="absolute inset-0 w-full h-full"
+              suppressHydrationWarning
             >
               {model.type === "video" ? (
                 <video
@@ -125,6 +126,8 @@ export default function StickyModelSection() {
                   autoPlay
                   loop
                   muted
+                  playsInline
+                  suppressHydrationWarning
                   className="w-full h-full object-cover scale-105"
                 />
               ) : (
@@ -132,6 +135,7 @@ export default function StickyModelSection() {
                   src={model.src}
                   alt={model.name}
                   fill
+                  unoptimized
                   className="object-cover scale-105"
                 />
               )}

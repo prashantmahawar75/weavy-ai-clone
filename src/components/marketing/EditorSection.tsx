@@ -60,6 +60,7 @@ const EditorSection = () => {
               alt="Astro"
               width={950}
               height={900}
+              unoptimized
             />
           </div>
 
@@ -73,6 +74,7 @@ const EditorSection = () => {
               alt="Text in Astro"
               width={260}
               height={300}
+              unoptimized
             />
           </div>
         </div>

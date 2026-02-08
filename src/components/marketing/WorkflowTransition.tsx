@@ -232,6 +232,7 @@ export default function WorkflowTransition() {
                       src={outputNode.image || ""}
                       alt="Output"
                       fill
+                      unoptimized
                       className="object-cover"
                     />
                   </div>
@@ -267,6 +268,7 @@ export default function WorkflowTransition() {
                           alt="Node"
                           width={200}
                           height={150}
+                          unoptimized
                           className="w-full h-full object-cover"
                         />
                       </div>

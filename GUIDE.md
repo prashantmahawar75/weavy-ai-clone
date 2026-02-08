@@ -373,7 +373,7 @@ weavy-clone/
     ├── 📄 middleware.ts       ← Runs BEFORE every request (auth check)
     │
     ├── 📁 app/               ← Pages and API routes (Next.js App Router)
-    │   ├── 📄 layout.tsx      ← Root layout (Geist fonts, ClerkProvider, light theme)
+    │   ├── 📄 layout.tsx      ← Root layout (DM Sans font, ClerkProvider, light theme)
     │   ├── 📄 page.tsx        ← Landing page (composes all marketing sections)
     │   ├── 📄 globals.css     ← Global styles + design tokens
     │   │
@@ -453,17 +453,17 @@ Every page in our app is wrapped in this layout. Think of it as a picture frame 
 // src/app/layout.tsx (simplified)
 
 import { ClerkProvider } from '@clerk/nextjs';
-import { Geist, Geist_Mono } from 'next/font/google';
+import { DM_Sans, Geist_Mono } from 'next/font/google';
 
-const geistSans = Geist({ subsets: ['latin'], variable: '--font-geist-sans' });
+const dmSans = DM_Sans({ subsets: ['latin'], variable: '--font-dm-sans', weight: ['400', '500', '600', '700'] });
 const geistMono = Geist_Mono({ subsets: ['latin'], variable: '--font-geist-mono' });
 
 export default function RootLayout({ children }) {
   return (
     <ClerkProvider>          {/* Provides auth to the entire app */}
       <html lang="en">
-        <body className={`${geistSans.variable} ${geistMono.variable}
-                          antialiased bg-[#FBFBFB]`}>
+        <body className={`${dmSans.variable} ${geistMono.variable}
+                          font-sans antialiased`}>
           {children}         {/* ← Each page gets inserted HERE */}
         </body>
       </html>
@@ -474,8 +474,8 @@ export default function RootLayout({ children }) {
 
 **What's happening:**
 1. `ClerkProvider` wraps everything so any page can check if the user is logged in
-2. We use **Geist** and **Geist Mono** fonts (the same fonts used on the real weavy.ai)
-3. The body has a light background (`#FBFBFB`) — matching weavy.ai's clean, light design
+2. We use **DM Sans** and **Geist Mono** fonts (matching the real weavy.ai's `font-family: Dmsans`)
+3. The body has a white background — matching weavy.ai's clean, light design
 4. `{children}` is a placeholder — when you visit `/dashboard`, the dashboard page is inserted here
 
 ### `middleware.ts` — The Bouncer
@@ -578,15 +578,15 @@ export default function Counter() {
 The landing page uses a **light theme** that matches the real weavy.ai:
 
 ```
-Page Background:   #FBFBFB  (off-white)
-Hero Gradient:     #d6e8f1 → #dce3e9  (soft blue)
-Yellow CTA:        #FEF3C7  (warm yellow for "Start Now" buttons)
+Page Background:   white  (clean white, matching real weavy.ai)
+Hero Gradient:     #c1cdd5 → #dce3e9  (french-gray blue)
+Lemon CTA:         #f7ff9e  (brand lemon for "Start Now" buttons)
 Dark Sections:     #2b2d2a / #09090b  (for Explore, Footer)
 Footer Sage:       #565955  (sage green container)
 Text (dark):       #1a1a1a / #09090b  (near-black)
 Text (light):      #ffffff  (on dark backgrounds)
 Text (muted):      #6b7280  (gray descriptions)
-Fonts:             Geist (body) + Geist Mono (code)
+Fonts:             DM Sans (body) + Geist Mono (code)
 ```
 
 The **workflow editor** uses dark-themed React Flow overrides — so the canvas is dark while the rest of the app is light.
@@ -594,7 +594,7 @@ The **workflow editor** uses dark-themed React Flow overrides — so the canvas 
 ### How Tailwind Classes Map to Design
 
 ```tsx
-<div className="bg-[#FBFBFB]">              {/* Page background: off-white */}
+<div className="bg-white">                   {/* Page background: white */}
   <div className="bg-white                    {/* Card: white */}
               border border-gray-200          {/* Subtle gray border */}
               rounded-2xl                      {/* Large rounded corners */}
@@ -608,7 +608,7 @@ The **workflow editor** uses dark-themed React Flow overrides — so the canvas 
     <p className="text-gray-500 text-sm">      {/* Muted gray, small */}
       Description
     </p>
-    <button className="bg-[#FEF3C7]           {/* Yellow background */}
+    <button className="bg-[#f7ff9e]           {/* Brand lemon background */}
                     text-[#09090b]             {/* Dark text */}
                     px-6 py-3                  {/* Generous padding */}
                     rounded-full               {/* Pill shape */}
@@ -694,7 +694,7 @@ The first visual section with large typography:
 
 ```
 ┌──────────────────────────────────────────────────────────┐
-│                    gradient bg (#d6e8f1)                  │
+│                    gradient bg (#c1cdd5)                  │
 │                    + grid pattern overlay                 │
 │                                                          │
 │                        Weavy                             │

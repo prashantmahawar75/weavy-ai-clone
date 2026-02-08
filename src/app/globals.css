@@ -118,8 +118,186 @@ body {
 }
 
 /* ============================================
-   React Flow Overrides (Workflow Editor pages)
+   Hero Section (pixel-perfect match to weavy.ai)
    ============================================ */
+
+/* Section background: gradient overlay + CDN grid/net image */
+.section-hero {
+  z-index: 2;
+  background-image:
+    linear-gradient(0deg, #ffffff4d 34%, #c1cdd559 71%),
+    url("https://cdn.prod.website-files.com/681b040781d5b5e278a69989/681ccdbeb607e939f7db68fa_BG%20NET%20Hero.avif");
+  background-position: 0 0, 50%;
+  background-size: auto, cover;
+  width: 100vw;
+  padding-left: 4.5vw;
+  padding-right: 4.5vw;
+  position: relative;
+}
+
+@media screen and (max-width: 767px) {
+  .section-hero {
+    background-image:
+      url("https://cdn.prod.website-files.com/681b040781d5b5e278a69989/68330580f233131a0746dcf2_BG_hero_mobile%402x.avif");
+    background-position: 50% 0;
+    background-repeat: no-repeat;
+    background-size: 100%;
+    width: auto;
+  }
+}
+
+/* 12-column grid (matches .grid-container.is-hero.is-banner-top) */
+.hero-grid {
+  grid-column-gap: 0;
+  grid-row-gap: 0;
+  grid-template-rows: 1fr auto;
+  grid-template-columns: repeat(12, 1fr);
+  width: 100%;
+  margin: 0 auto;
+  display: grid;
+  padding-top: 16em;
+}
+
+@media screen and (max-width: 767px) {
+  .hero-grid {
+    display: block;
+    padding-top: 8.5em;
+  }
+}
+
+/* Hero heading (matches .heading_h1-hero — 6.52778rem at 1vw base) */
+.heading_h1-hero {
+  font-size: 6.52778em;
+  font-weight: 400;
+  line-height: 0.86;
+  letter-spacing: -0.03em;
+  color: var(--brand--rich-black, #252525);
+  margin: 0;
+}
+
+@media screen and (max-width: 479px) {
+  .heading_h1-hero {
+    font-size: 9.4em;
+  }
+}
+
+/* Heading wrappers */
+.h1-wrapper {
+  z-index: 100;
+  padding-top: 0.5em;
+  padding-bottom: 0.5em;
+  position: relative;
+}
+
+.h1-wrapper.extra-bot-pad {
+  margin-bottom: 1.6em;
+  padding-bottom: 1em;
+}
+
+@media screen and (max-width: 991px) {
+  .h1-wrapper.extra-bot-pad {
+    text-align: right;
+  }
+}
+
+/* Description paragraph */
+.paragraph-wrapper {
+  max-width: 23.875em;
+}
+
+.text-size-large {
+  font-size: 1.11111em;
+  line-height: 1.6;
+  color: var(--stone-grey, #656568);
+  font-weight: 400;
+  margin: 0;
+}
+
+/* Hero cards grid (matches .hero-draggbles-comp — 8-col, 4-row) */
+.hero-cards-area {
+  grid-column-gap: 3.4em;
+  grid-row-gap: 1em;
+  background-image: linear-gradient(#f9f9f400, #f3f3ee 40%, #e3e3e7 77%, #c8d7cc);
+  border-radius: 0.694444em;
+  grid-template-rows: auto auto auto auto;
+  grid-template-columns: repeat(8, 1fr);
+  width: 100%;
+  margin-top: 6em;
+  padding: 1em;
+  display: grid;
+  position: relative;
+  bottom: -1.73611em;
+}
+
+@media screen and (max-width: 479px) {
+  .hero-cards-area {
+    border-radius: 16px;
+  }
+}
+
+/* Hero card base */
+.hr-card {
+  position: relative;
+  cursor: grab;
+  user-select: none;
+}
+
+.hr-card img {
+  width: 100%;
+  height: auto;
+  display: block;
+  border-radius: 0.5em;
+}
+
+/* Card positions (from real Webflow w-node grid-area values) */
+.hr-card-3d {
+  grid-area: 1 / 1 / 3 / 3;
+  place-self: start;
+  width: 12.2em;
+}
+
+.hr-card-color-reference {
+  grid-area: 3 / 1 / 5 / 3;
+  place-self: center stretch;
+}
+
+.hr-card-stable-diffusion {
+  grid-area: 1 / 3 / 5 / 5;
+  place-self: end stretch;
+}
+
+.hr-card-text {
+  grid-area: 1 / 5 / 3 / 7;
+  place-self: center stretch;
+  max-width: 12.2222em;
+  max-height: 7.56944em;
+}
+
+.hr-card-flux-2-1 {
+  grid-area: 3 / 5 / 5 / 7;
+  align-self: start;
+}
+
+.hr-card-minimax-video {
+  grid-area: 1 / 7 / 5 / 9;
+  place-self: start end;
+  width: 23.5em;
+}
+
+/* ============================================
+   React Flow Overrides (Workflow Editor pages)
+   Scoped to avoid affecting hero section canvas.
+   ============================================ */
+
+/* Hero section ReactFlow — transparent background, no controls */
+.hero-cards-area .react-flow__background {
+  background-color: transparent !important;
+}
+.hero-cards-area .react-flow__renderer {
+  background: transparent !important;
+}
+
+/* Editor pages — dark background */
 .react-flow__background {
   background-color: #0a0a0a !important;
 }

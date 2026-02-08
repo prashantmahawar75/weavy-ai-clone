@@ -63,7 +63,7 @@ A pixel-perfect clone of [Weavy.ai](https://weavy.ai), featuring a fully animate
 | Tasks | Trigger.dev |
 | Media | Transloadit |
 | Styling | Tailwind CSS v4 |
-| Fonts | Geist + Geist Mono |
+| Fonts | DM Sans + Geist Mono |
 
 ---
 
@@ -73,14 +73,14 @@ A pixel-perfect clone of [Weavy.ai](https://weavy.ai), featuring a fully animate
 |------|---------|---------|
 | **Node.js** | v18.18+ (v20+ recommended) | [nodejs.org](https://nodejs.org) or `brew install node` |
 | **npm** | v9+ (bundled with Node.js) | Included with Node.js |
-| **PostgreSQL** | v14+ | `brew install postgresql@16` or [postgresql.org](https://www.postgresql.org/download) |
+| **PostgreSQL** | v14+ | [Neon](https://neon.tech) (cloud, recommended) or `brew install postgresql@16` |
 | **Git** | Any recent version | `brew install git` or [git-scm.com](https://git-scm.com) |
 
 ```bash
 # Verify installations
 node --version    # v18.18.0+
 npm --version     # 9.x+
-psql --version    # 14.x+
+# psql --version  # only needed if using local PostgreSQL
 ```
 
 ---
@@ -102,6 +102,12 @@ npm install
 
 ### 3. Set up PostgreSQL
 
+**Option A: Neon (cloud — recommended):**
+1. Sign up at [neon.tech](https://neon.tech)
+2. Create a new project → copy the connection string
+3. Use it as `DATABASE_URL` in step 5
+
+**Option B: Local PostgreSQL:**
 ```bash
 # Start PostgreSQL (macOS Homebrew)
 brew services start postgresql@16
@@ -128,8 +134,8 @@ EOF
 Create/edit `.env.local` in the project root:
 
 ```env
-# Database
-DATABASE_URL="postgresql://weavy_user:your_password@localhost:5432/weavy_db"
+# Database (Neon cloud or local PostgreSQL)
+DATABASE_URL="postgresql://user:password@host/dbname?sslmode=require"
 
 # Clerk (required)
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_XXXXX
@@ -217,8 +223,8 @@ Click ⚙️ in the Dashboard header → add personal keys for Gemini, Transload
 src/
 ├── app/
 │   ├── page.tsx                        # Landing page (composes all marketing sections)
-│   ├── layout.tsx                      # Root layout (Geist fonts, ClerkProvider, light theme)
-│   ├── globals.css                     # Global styles, design tokens, scrollbar utilities
+│   ├── layout.tsx                      # Root layout (DM Sans font, ClerkProvider, light theme)
+│   ├── globals.css                     # Global styles, weavy.ai design tokens (18 CSS custom properties)
 │   ├── dashboard/page.tsx              # Workflow list
 │   ├── settings/page.tsx               # API key management
 │   ├── workflow/[id]/page.tsx          # Workflow editor
@@ -284,14 +290,21 @@ src/
 
 The landing page uses a **light theme** matching weavy.ai:
 
-| Token | Value | Usage |
-|-------|-------|-------|
-| Background | `#FBFBFB` | Page background |
-| Hero gradient | `#d6e8f1` → `#dce3e9` | Hero section |
-| Yellow CTA | `#FEF3C7` | "Start Now" buttons |
-| Dark sections | `#2b2d2a` / `#09090b` | Explore, Footer |
-| Footer sage | `#565955` | Footer container |
-| Fonts | Geist + Geist Mono | Body + code |
+| Token | CSS Variable | Value | Usage |
+|-------|-------------|-------|-------|
+| Background | `--brand--base--white` | `white` | Page background |
+| Lemon CTA | `--brand--lemon` | `#f7ff9e` | "Start Now" buttons |
+| Lemon Light | `--brand--lemon-100` | `#f7ffa8` | Active states |
+| Hero gradient | `--brand--french-gray` | `#c1cdd5` | Hero section |
+| Eggshell | `--brand--eggshell` | `#eaeada` | Hover states |
+| Rich Black | `--brand--rich-black` | `#252525` | Text |
+| Richer Black | `--brand--richer-black` | `#212126` | Dark sections |
+| Spring Wood | `--brand--spring-wood` | `#f7f7f0` | Subtle backgrounds |
+| Stone Grey | `--stone-grey` | `#656568` | Muted text |
+| French Gray | `--brand--french-gray` | `#c1cdd5` | Hero gradient |
+| Dark sections | — | `#2b2d2a` / `#09090b` | Explore, Footer |
+| Footer sage | — | `#565955` | Footer container |
+| Fonts | — | DM Sans + Geist Mono | Body + code |
 
 The workflow editor uses dark-themed React Flow overrides for the canvas.
 
@@ -329,8 +342,8 @@ npx prisma db push --force-reset  # Reset database (deletes all data)
 | Problem | Solution |
 |---------|----------|
 | "publishableKey passed to Clerk is invalid" | Update Clerk keys in `.env.local` from [dashboard.clerk.com](https://dashboard.clerk.com) |
-| "Can't reach database server" | Ensure PostgreSQL is running: `brew services start postgresql@16` |
-| "database does not exist" | `psql postgres -c "CREATE DATABASE weavy_db;"` |
+| "Can't reach database server" | If using Neon, check connection string and `?sslmode=require`. If local, run `brew services start postgresql@16` |
+| "database does not exist" | If local: `psql postgres -c "CREATE DATABASE weavy_db;"`. If Neon: create a new project at neon.tech |
 | Port 3000 in use | `lsof -ti:3000 \| xargs kill -9` or `npm run dev -- -p 3001` |
 | Node modules issues | `rm -rf node_modules package-lock.json && npm install` |
 | Images not loading on landing page | Check `next.config.ts` has `cdn.prod.website-files.com` in remote patterns |

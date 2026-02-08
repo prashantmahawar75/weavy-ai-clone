@@ -171,6 +171,7 @@ export default function ExploreWorkflows() {
                 src={wf.image}
                 alt={wf.title}
                 fill
+                unoptimized
                 className="object-cover group-hover:scale-110 transition-transform duration-500"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-[#363836] via-transparent to-transparent" />

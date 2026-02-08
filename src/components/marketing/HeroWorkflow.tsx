@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import {
@@ -10,42 +11,37 @@ import {
   getBezierPath,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
+import type { HeroNode, HeroNodeData } from "@/lib/heroTypes";
 import type { EdgeProps } from "@xyflow/react";
 
-interface HeroNodeData {
-  type?: string;
-  label?: string;
-  image?: string;
-  video?: string;
-  text?: string;
-  gradientClass?: string;
-  width?: string;
-  height?: string;
-  [key: string]: unknown;
-}
+/**
+ * Hero Workflow — Interactive ReactFlow canvas (reference: WavyxGalaxy).
+ * Nodes are draggable with bezier edge connections.
+ * Styled with CDN images from real weavy.ai.
+ */
 
-// Custom Node
+// --- Custom Node ---
 const MarketingCardNode = ({ data }: { data: HeroNodeData }) => {
   const width = data.width || "w-64";
   const height = data.height || "aspect-[4/5]";
 
   return (
     <div className={`${width} flex flex-col gap-2`}>
+      {/* Label */}
       {data.label && (
-        <div className="flex items-center gap-3 text-[10px] font-medium tracking-[0.15em] uppercase text-foreground/70">
+        <div className="flex items-center gap-3 text-[10px] font-medium tracking-[0.15em] uppercase text-[#252525]/70">
           <span>{data.type}</span>
-          <span className="text-foreground">{data.label}</span>
+          <span className="text-[#252525]">{data.label}</span>
         </div>
       )}
       {data.type && !data.label && (
-        <div className="text-[10px] font-medium tracking-[0.15em] uppercase text-foreground/70">
+        <div className="text-[10px] font-medium tracking-[0.15em] uppercase text-[#252525]/70">
           {data.type}
         </div>
       )}
 
-      <div
-        className={`${height} w-full rounded-lg overflow-hidden bg-muted/50 relative`}
-      >
+      {/* Content */}
+      <div className={`${height} w-full rounded-lg overflow-hidden bg-gray-100/50 relative`}>
         {data.video ? (
           <video
             src={typeof data.video === "string" ? data.video : undefined}
@@ -53,6 +49,7 @@ const MarketingCardNode = ({ data }: { data: HeroNodeData }) => {
             loop
             muted
             playsInline
+            suppressHydrationWarning
             className="w-full h-full object-cover"
           />
         ) : data.image ? (
@@ -60,35 +57,37 @@ const MarketingCardNode = ({ data }: { data: HeroNodeData }) => {
             src={data.image}
             alt={data.label || "workflow node"}
             className="w-full h-full object-cover"
+            draggable={false}
           />
         ) : data.text ? (
-          <div className="p-4 h-full flex items-start bg-card border border-border rounded-lg">
-            <p className="text-[11px] leading-relaxed text-foreground/80">
+          <div className="p-4 h-full flex items-start bg-white border border-gray-200 rounded-lg">
+            <p className="text-[11px] leading-relaxed text-[#252525]/80">
               {data.text}
             </p>
           </div>
         ) : (
           <div
-            className={`w-full h-full ${data.gradientClass || "bg-gradient-to-r accent-black"}`}
+            className={`w-full h-full ${data.gradientClass || "bg-gradient-to-r from-gray-200 to-gray-300"}`}
           />
         )}
       </div>
 
+      {/* Handles */}
       <Handle
         type="target"
         position={Position.Left}
-        className="!w-2 !h-2 !bg-foreground/30 !border-0"
+        className="!w-2 !h-2 !bg-[#252525]/30 !border-0"
       />
       <Handle
         type="source"
         position={Position.Right}
-        className="!w-2 !h-2 !bg-foreground/30 !border-0"
+        className="!w-2 !h-2 !bg-[#252525]/30 !border-0"
       />
     </div>
   );
 };
 
-// Custom Edge
+// --- Custom Edge ---
 const CustomEdge = ({ id, sourceX, sourceY, targetX, targetY }: EdgeProps) => {
   const [edgePath] = getBezierPath({
     sourceX,
@@ -101,11 +100,7 @@ const CustomEdge = ({ id, sourceX, sourceY, targetX, targetY }: EdgeProps) => {
     <BaseEdge
       id={id}
       path={edgePath}
-      style={{
-        stroke: "#fff",
-        strokeWidth: 1.5,
-        opacity: 1,
-      }}
+      style={{ stroke: "#fff", strokeWidth: 1.5, opacity: 1 }}
     />
   );
 };
@@ -113,10 +108,11 @@ const CustomEdge = ({ id, sourceX, sourceY, targetX, targetY }: EdgeProps) => {
 const nodeTypes = { marketingCard: MarketingCardNode };
 const edgeTypes = { custom: CustomEdge };
 
-const initialNodes = [
+// --- Node Layout ---
+const initialNodes: HeroNode[] = [
   {
     id: "1",
-    type: "marketingCard" as const,
+    type: "marketingCard",
     position: { x: 40, y: 80 },
     data: {
       type: "3D",
@@ -129,7 +125,7 @@ const initialNodes = [
   },
   {
     id: "2",
-    type: "marketingCard" as const,
+    type: "marketingCard",
     position: { x: 50, y: 380 },
     data: {
       type: "Color Reference",
@@ -142,7 +138,7 @@ const initialNodes = [
   },
   {
     id: "3",
-    type: "marketingCard" as const,
+    type: "marketingCard",
     position: { x: 380, y: 120 },
     data: {
       type: "Image",
@@ -155,19 +151,19 @@ const initialNodes = [
   },
   {
     id: "4",
-    type: "marketingCard" as const,
+    type: "marketingCard",
     position: { x: 680, y: 60 },
     data: {
       type: "Text",
       label: "",
-      text: "a Great-Tailed Grackle bird is flying from the background and seating on the model\u2019s shoulder slowly and barely moves, the model looks at the camera, then bird flies away. cinematic.",
+      text: "a Great-Tailed Grackle bird is flying from the background and seating on the model's shoulder slowly and barely moves, the model looks at the camera, then bird flies away. cinematic.",
       width: "w-[180px]",
       height: "h-auto",
     },
   },
   {
     id: "5",
-    type: "marketingCard" as const,
+    type: "marketingCard",
     position: { x: 830, y: 280 },
     data: {
       type: "Image",
@@ -180,13 +176,12 @@ const initialNodes = [
   },
   {
     id: "6",
-    type: "marketingCard" as const,
+    type: "marketingCard",
     position: { x: 1080, y: 80 },
     data: {
       type: "Video",
       label: "Minimax Video",
-      video:
-        "https://assets.weavy.ai/homepage/hero/hero_video_mobile_342px.mp4",
+      video: "https://assets.weavy.ai/homepage/hero/hero_video.mp4",
       width: "w-[300px]",
       height: "aspect-[3/4]",
     },

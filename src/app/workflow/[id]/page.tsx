@@ -1,7 +1,7 @@
 import { auth } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
-import WorkflowEditor from '@/components/workflow/WorkflowEditor';
+import WorkflowEditorClient from '@/components/editor/WorkflowEditorClient';
 
 interface WorkflowPageProps {
   params: Promise<{ id: string }>;
@@ -31,28 +31,17 @@ export default async function WorkflowPage({ params }: WorkflowPageProps) {
 
   // Handle "new" workflow
   if (id === 'new') {
-    return <WorkflowEditor user={JSON.parse(JSON.stringify(user))} workflow={null} />;
+    return <WorkflowEditorClient workflowId={null} />;
   }
 
   // Get existing workflow
   const workflow = await prisma.workflow.findUnique({
     where: { id },
-    include: {
-      runs: {
-        orderBy: { startedAt: 'desc' },
-        take: 50,
-      },
-    },
   });
 
   if (!workflow || workflow.userId !== user.id) {
     redirect('/dashboard');
   }
 
-  return (
-    <WorkflowEditor
-      user={JSON.parse(JSON.stringify(user))}
-      workflow={JSON.parse(JSON.stringify(workflow))}
-    />
-  );
+  return <WorkflowEditorClient workflowId={id} />;
 }

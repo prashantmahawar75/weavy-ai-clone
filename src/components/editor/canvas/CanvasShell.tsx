@@ -1,0 +1,552 @@
+"use client";
+
+import ReactFlow, {
+  Background,
+  Controls,
+  MiniMap,
+  BackgroundVariant,
+  useNodesState,
+  useEdgesState,
+  addEdge,
+  type Node,
+  type Edge,
+  type Connection,
+  useReactFlow,
+} from "reactflow";
+import "reactflow/dist/style.css";
+
+import { CSSProperties, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import PromptNode from "../nodes/PromptNode";
+import ImageNode from "../nodes/ImageNode";
+import RunLLMNode from "../nodes/RunLLMNode";
+import UploadVideoNode from "../nodes/UploadVideoNode";
+import CropImageNode from "../nodes/CropImageNode";
+import ExtractFrameNode from "../nodes/ExtractFrameNode";
+import { useFlowStore } from "@/lib/store/flowStore";
+import { useHistoryStore } from "@/lib/store/historyStore";
+import { collectLLMInputs } from "@/lib/graph/collectLLMInputs";
+import LLMSidebar from "../sidebar/LLMSidebar";
+import EditorSidebar from "../sidebar/EditorSidebar";
+import { DotLoader } from "react-spinners";
+
+const override: CSSProperties = {
+  display: "block",
+  margin: "0 auto",
+  borderColor: "red",
+};
+
+const nodeTypes = {
+  prompt: PromptNode,
+  image: ImageNode,
+  llm: RunLLMNode,
+  uploadVideo: UploadVideoNode,
+  cropImage: CropImageNode,
+  extractFrame: ExtractFrameNode,
+};
+
+const INITIAL_NODES: Node[] = [
+  { id: "prompt-1", type: "prompt", position: { x: 150, y: 150 }, data: {} },
+  { id: "image-1", type: "image", position: { x: 150, y: 350 }, data: {} },
+  { id: "llm-1", type: "llm", position: { x: 500, y: 250 }, data: {} },
+];
+
+export default function CanvasShell({
+  workflowId: initialWorkflowId,
+}: {
+  workflowId: string | null;
+}) {
+  const [nodes, setNodes, onNodesChange] = useNodesState<any>([]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
+  const [workflowName, setWorkflowName] = useState("Untitled workflow");
+  const [workflowId, setWorkflowId] = useState<string | null>(initialWorkflowId);
+
+  const [isLoading, setIsLoading] = useState(false);
+  const [notice, setNotice] = useState<null | { type: "info" | "error"; text: string }>(null);
+
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const [showWorkflowName, setShowWorkflowName] = useState<boolean>(true);
+  const selectedNode = useMemo(
+    () => nodes.find((n) => n.id === selectedNodeId) ?? null,
+    [nodes, selectedNodeId]
+  );
+
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
+
+  const reactFlowWrapper = useRef<HTMLDivElement>(null);
+  const { project } = useReactFlow();
+
+  const autosaveTimer = useRef<NodeJS.Timeout | null>(null);
+  const isHydrating = useRef(true);
+  const lastSnapshot = useRef<string>("");
+
+  const registerAddNode = useFlowStore((s) => s.registerAddNode);
+  const { push, undo, redo } = useHistoryStore();
+
+  // Auto clear notices after a short delay
+  useEffect(() => {
+    if (!notice) return;
+    const t = setTimeout(() => setNotice(null), 4000);
+    return () => clearTimeout(t);
+  }, [notice]);
+
+  /* ---------------- Hydration ---------------- */
+  useEffect(() => {
+    async function hydrate() {
+      setIsLoading(true);
+      try {
+        if (!initialWorkflowId) {
+          setNodes(INITIAL_NODES);
+          setEdges([]);
+          isHydrating.current = false;
+          return;
+        }
+
+        const res = await fetch(`/api/workflow/load/${initialWorkflowId}`);
+        if (!res.ok) throw new Error(`Failed to load workflow (${res.status})`);
+        const json = await res.json();
+
+        if (json.success) {
+          setNodes(json.workflow.nodes);
+          setEdges(json.workflow.edges);
+          setWorkflowId(json.workflow.id);
+          setWorkflowName(json.workflow.name || "Untitled workflow");
+        } else {
+          setNotice({ type: "error", text: json.error || "Failed to load workflow" });
+        }
+      } catch (err: any) {
+        console.error("Hydrate error", err);
+        setNotice({ type: "error", text: err?.message || "Failed to load workflow" });
+      } finally {
+        isHydrating.current = false;
+        setIsLoading(false);
+      }
+    }
+
+    hydrate();
+  }, [initialWorkflowId]);
+
+  /* ---------------- Sidebar → Canvas ---------------- */
+  useEffect(() => {
+    registerAddNode((node) => {
+      setNodes((nds) => [...nds, node]);
+    });
+  }, [registerAddNode, setNodes]);
+
+  /* ---------------- History ---------------- */
+  useEffect(() => {
+    if (isHydrating.current) return;
+
+    const snapshot = JSON.stringify({ nodes, edges });
+    if (snapshot !== lastSnapshot.current) {
+      const cloned = JSON.parse(JSON.stringify({ nodes, edges }));
+      push(cloned);
+      lastSnapshot.current = snapshot;
+    }
+  }, [nodes, edges, push]);
+
+  /* ---------------- LLM Execution ---------------- */
+  const handleRunLLM = useCallback(
+    async (e: Event) => {
+      const event = e as CustomEvent<{ nodeId: string }>;
+      const { nodeId } = event.detail;
+
+      const node = nodes.find((n) => n.id === nodeId);
+
+      if (!node || node.type !== "llm") {
+        console.warn("LLM node not found");
+        setNotice({ type: "error", text: "LLM node not found" });
+        return;
+      }
+
+      const { inputs, systemPrompt } = collectLLMInputs(nodeId, nodes, edges);
+
+      if (!inputs.length) {
+        setNotice({ type: "error", text: "No inputs connected to LLM node" });
+        window.dispatchEvent(
+          new CustomEvent("llm-run-end", {
+            detail: { nodeId, success: false, error: "No inputs connected to LLM node" },
+          })
+        );
+        return;
+      }
+      const hasText = inputs.some((item) => item.type === "text");
+
+      if (!hasText) {
+        setNotice({ type: "error", text: "Message Prompt is Required" });
+        window.dispatchEvent(
+          new CustomEvent("llm-run-end", {
+            detail: { nodeId, success: false, error: "Message Prompt is Required" },
+          })
+        );
+        return;
+      }
+
+      setIsLoading(true);
+      setNotice({ type: "info", text: "Running LLM..." });
+
+      try {
+        window.dispatchEvent(new CustomEvent("llm-run-start", { detail: { nodeId } }));
+
+        const res = await fetch("/api/llm/execute", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model: node.data?.model ?? "gemini-2.5-flash",
+            temperature: node.data?.temperature ?? 0.6,
+            thinking: node.data?.thinking ?? false,
+            systemPrompt: systemPrompt ?? "You are a helpful AI",
+            inputs,
+          }),
+        });
+
+        if (!res.ok) throw new Error(`LLM request failed (${res.status})`);
+        if (!res.body) throw new Error("No response body from LLM");
+
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let accumulated = "";
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          accumulated += decoder.decode(value, { stream: true });
+
+          setNodes((nds) =>
+            nds.map((n) =>
+              n.id === nodeId ? { ...n, data: { ...n.data, output: accumulated } } : n
+            )
+          );
+        }
+
+        setNotice({ type: "info", text: "LLM run complete" });
+        window.dispatchEvent(new CustomEvent("llm-run-end", { detail: { nodeId, success: true } }));
+      } catch (err: any) {
+        console.error("LLM run error", err);
+        setNotice({ type: "error", text: err?.message || "LLM run failed" });
+        window.dispatchEvent(
+          new CustomEvent("llm-run-end", {
+            detail: { nodeId, success: false, error: err?.message },
+          })
+        );
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [nodes, edges, setNodes]
+  );
+
+  useEffect(() => {
+    window.addEventListener("run-llm-node", handleRunLLM);
+    return () => window.removeEventListener("run-llm-node", handleRunLLM);
+  }, [handleRunLLM]);
+
+  /* ---------------- Autosave ---------------- */
+  useEffect(() => {
+    if (isHydrating.current) return;
+    if (!nodes.length) return;
+
+    if (autosaveTimer.current) {
+      clearTimeout(autosaveTimer.current);
+    }
+
+    autosaveTimer.current = setTimeout(() => {
+      saveWorkflow();
+    }, 1000);
+
+    return () => {
+      if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
+    };
+  }, [nodes, edges, workflowName]);
+
+  const saveWorkflow = useCallback(async () => {
+    setSaveStatus("saving");
+
+    try {
+      const res = await fetch("/api/workflow/save", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: workflowId,
+          name: workflowName,
+          nodes,
+          edges,
+        }),
+      });
+
+      if (!res.ok) throw new Error(`Save failed (${res.status})`);
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error || "Save failed");
+
+      if (!workflowId) {
+        setWorkflowId(json.workflow.id);
+        window.history.replaceState({}, "", `/workflow/${json.workflow.id}`);
+      }
+
+      setSaveStatus("saved");
+      setTimeout(() => setSaveStatus("idle"), 1500);
+    } catch (err: any) {
+      console.error("Save failed", err);
+      setSaveStatus("error");
+    }
+  }, [nodes, edges, workflowId, workflowName]);
+
+  /* ---------------- select Node ---------------- */
+  const updateSelectedNodeData = useCallback(
+    (patch: any) => {
+      setNodes((nds) =>
+        nds.map((n) => (n.id === selectedNodeId ? { ...n, data: { ...n.data, ...patch } } : n))
+      );
+    },
+    [selectedNodeId, setNodes]
+  );
+
+  /* ---------------- edge validation ---------------- */
+  const isValidConnection = useCallback(
+    (connection: Connection) => {
+      const sourceNode = nodes.find((n) => n.id === connection.source);
+      const targetNode = nodes.find((n) => n.id === connection.target);
+
+      if (!sourceNode || !targetNode) return false;
+
+      const targetHandle = connection.targetHandle ?? connection.sourceHandle ?? "";
+
+      if (sourceNode.type === "llm" && targetNode.type === "llm") {
+        const targetHandle = connection.targetHandle ?? connection.sourceHandle ?? "";
+        if (targetHandle === "image") return false;
+        return true;
+      }
+
+      // prompt -> llm
+      if (sourceNode.type === "prompt" && targetNode.type === "llm") {
+        if (targetHandle === "image") return false;
+        return true;
+      }
+
+      // image -> llm
+      if (sourceNode.type === "image" && targetNode.type === "llm") {
+        return targetHandle === "image" || targetHandle === "";
+      }
+
+      // disallow connecting image -> prompt
+      if (sourceNode.type === "image" && targetNode.type === "prompt") return false;
+
+      return false;
+    },
+    [nodes]
+  );
+
+  const handleDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+
+      const type = e.dataTransfer.getData("application/reactflow");
+      if (!type) return;
+
+      const bounds = reactFlowWrapper.current!.getBoundingClientRect();
+      const position = project({
+        x: e.clientX - bounds.left,
+        y: e.clientY - bounds.top,
+      });
+
+      setNodes((nds) => [
+        ...nds,
+        {
+          id: `${type}-${Date.now()}`,
+          type,
+          position,
+          data: {},
+        },
+      ]);
+    },
+    [project, setNodes]
+  );
+
+  const handleNodeClick = useCallback((_: any, node: Node) => {
+    if (node.type === "llm") setSelectedNodeId(node.id);
+    else setSelectedNodeId(null);
+  }, []);
+
+  const handleConnect = useCallback(
+    (connection: Connection) => {
+      const handleId = connection.targetHandle ?? connection.sourceHandle;
+
+      const edgeColor =
+        handleId === "text"
+          ? "#A855F7"
+          : handleId === "image"
+          ? "#22C55E"
+          : handleId === "system"
+          ? "#F59E0B"
+          : "#94A3B8";
+
+      const label =
+        handleId === "text"
+          ? "Prompt"
+          : handleId === "image"
+          ? "Image"
+          : handleId === "system"
+          ? "System"
+          : "";
+
+      setEdges((eds) =>
+        addEdge(
+          {
+            ...connection,
+            animated: true,
+            label,
+            style: { stroke: edgeColor, strokeWidth: 2 },
+            labelStyle: { fill: "#fff", fontSize: 12 },
+            labelBgStyle: { fill: "#212126" },
+          },
+          eds
+        )
+      );
+    },
+    [setEdges]
+  );
+
+  const handlePaneClick = useCallback(() => setSelectedNodeId(null), []);
+
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      const ctrl = navigator.platform.includes("Mac") ? e.metaKey : e.ctrlKey;
+
+      if (ctrl && e.key === "z") {
+        e.preventDefault();
+        const snapshot = (e as any).shiftKey ? redo() : undo();
+        if (snapshot) {
+          setNodes(snapshot.nodes);
+          setEdges(snapshot.edges);
+        }
+      }
+    },
+    [undo, redo]
+  );
+
+  if (isHydrating.current) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
+        <DotLoader
+          color="#ffffff"
+          loading={true}
+          cssOverride={override}
+          size={80}
+          aria-label="Loading Spinner"
+          data-testid="loader"
+        />
+      </div>
+    );
+  }
+
+  return (
+    <main className="flex flex-1 bg-[#0E0E13]" tabIndex={0} onKeyDown={handleKeyDown}>
+      <EditorSidebar name={workflowName} showName={setShowWorkflowName} />
+
+      <div className="flex-1 relative">
+        {showWorkflowName && (
+          <div className="absolute top-3 left-4 z-50">
+            <input
+              value={workflowName}
+              onChange={(e) => setWorkflowName(e.target.value)}
+              className="
+            bg-[#212126]
+            border border-transparent
+            hover:border-white/20
+            focus:border-white/10
+            rounded-md
+            px-6 py-2
+            text-sm
+            text-white
+            focus:outline-none
+            max-w-[260px]
+          "
+            />
+          </div>
+        )}
+
+        <div className="absolute top-3 right-4 z-50 flex items-center gap-3">
+          <span className="text-xs text-white/70">
+            {saveStatus === "saving" && "Saving…"}
+            {saveStatus === "saved" && "Saved"}
+            {saveStatus === "error" && "Save failed"}
+          </span>
+
+          <button
+            onClick={saveWorkflow}
+            className="rounded-md bg-cyan-500/90 hover:bg-cyan-400 text-black px-4 py-2 text-sm font-medium"
+          >
+            Save
+          </button>
+        </div>
+
+        {(isHydrating.current || isLoading || notice) && (
+          <div className="absolute top-3 left-1/2 transform -translate-x-1/2 z-50">
+            {isHydrating.current || isLoading ? (
+              <div className="rounded-md bg-black/60 text-white px-3 py-1 text-sm">Loading…</div>
+            ) : null}
+
+            {notice ? (
+              <div
+                className={`mt-2 rounded-md px-3 py-1 text-sm ${
+                  notice.type === "error" ? "bg-red-700 text-white" : "bg-emerald-700 text-white"
+                }`}
+              >
+                {notice.text}
+              </div>
+            ) : null}
+          </div>
+        )}
+
+        {/* For Drag and Drop from side nav */}
+        <div
+          ref={reactFlowWrapper}
+          className="flex-1 h-full"
+          onDragOver={(e) => {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = "move";
+          }}
+          onDrop={handleDrop}
+        >
+          <ReactFlow
+            nodes={nodes}
+            edges={edges}
+            nodeTypes={nodeTypes}
+            onNodeClick={handleNodeClick}
+            onNodesChange={onNodesChange}
+            onEdgesChange={onEdgesChange}
+            onConnect={handleConnect}
+            deleteKeyCode={["Backspace", "Delete"]}
+            onPaneClick={handlePaneClick}
+            isValidConnection={isValidConnection}
+            fitView
+            proOptions={{ hideAttribution: true }}
+          >
+            <Background variant={BackgroundVariant.Dots} gap={16} size={1.3} color="#44424A" />
+            <Controls />
+            <MiniMap
+              maskColor="rgba(0,0,0,0.6)"
+              nodeColor={() => "#1f2937"}
+              className="rounded-lg border border-white/10"
+            />
+          </ReactFlow>
+        </div>
+      </div>
+
+      {selectedNode && selectedNode.type === "llm" && (
+        <LLMSidebar
+          node={selectedNode}
+          onClose={() => setSelectedNodeId(null)}
+          onUpdate={updateSelectedNodeData}
+          onRun={() =>
+            window.dispatchEvent(
+              new CustomEvent("run-llm-node", {
+                detail: { nodeId: selectedNode.id },
+              })
+            )
+          }
+        />
+      )}
+    </main>
+  );
+}

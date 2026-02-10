@@ -5,6 +5,39 @@ import { Crop, Play, Loader2 } from "lucide-react";
 import clsx from "clsx";
 import { useCallback, useState } from "react";
 
+// Client-side image crop using Canvas API
+function cropImageClientSide(
+  imageSrc: string,
+  xPct: number,
+  yPct: number,
+  wPct: number,
+  hPct: number
+): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      try {
+        const sx = Math.round((xPct / 100) * img.naturalWidth);
+        const sy = Math.round((yPct / 100) * img.naturalHeight);
+        const sw = Math.round((wPct / 100) * img.naturalWidth);
+        const sh = Math.round((hPct / 100) * img.naturalHeight);
+
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.max(sw, 1);
+        canvas.height = Math.max(sh, 1);
+        const ctx = canvas.getContext("2d")!;
+        ctx.drawImage(img, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
+        resolve(canvas.toDataURL("image/png"));
+      } catch (err) {
+        reject(err);
+      }
+    };
+    img.onerror = () => reject(new Error("Failed to load image for cropping"));
+    img.src = imageSrc;
+  });
+}
+
 export default function CropImageNode({ id, data, selected }: NodeProps) {
   const { setNodes, getNodes, getEdges } = useReactFlow();
   const [isRunning, setIsRunning] = useState(false);
@@ -13,44 +46,43 @@ export default function CropImageNode({ id, data, selected }: NodeProps) {
   const resolveImageUrl = useCallback(() => {
     const edges = getEdges();
     const nodes = getNodes();
-    
+
     // First try to find edge connected to image_url handle
     let imageEdge = edges.find((e) => e.target === id && e.targetHandle === "image_url");
-    
+
     // If not found, look for any edge to this node from an image-providing source
     if (!imageEdge) {
       imageEdge = edges.find((e) => {
         if (e.target !== id) return false;
         const srcNode = nodes.find((n) => n.id === e.source);
-        // Check if source node has image data
         return srcNode?.data?.previewUrl || srcNode?.data?.imageBase64 || srcNode?.data?.outputImageUrl;
       });
     }
-    
+
     if (!imageEdge) return null;
 
     const sourceNode = nodes.find((n) => n.id === imageEdge.source);
     if (!sourceNode) return null;
 
-    // Check various possible image data properties
     if (sourceNode.data?.outputImageUrl) return sourceNode.data.outputImageUrl;
     if (sourceNode.data?.previewUrl) return sourceNode.data.previewUrl;
     if (sourceNode.data?.imageBase64) {
-      const mimeType = sourceNode.data.mimeType || 'image/jpeg';
+      const mimeType = sourceNode.data.mimeType || "image/jpeg";
       return `data:${mimeType};base64,${sourceNode.data.imageBase64}`;
     }
     return null;
   }, [id, getEdges, getNodes]);
 
-  const updateData = useCallback((updates: Record<string, unknown>) => {
-    setNodes((nds) =>
-      nds.map((node) =>
-        node.id === id
-          ? { ...node, data: { ...node.data, ...updates } }
-          : node
-      )
-    );
-  }, [id, setNodes]);
+  const updateData = useCallback(
+    (updates: Record<string, unknown>) => {
+      setNodes((nds) =>
+        nds.map((node) =>
+          node.id === id ? { ...node, data: { ...node.data, ...updates } } : node
+        )
+      );
+    },
+    [id, setNodes]
+  );
 
   const handleCrop = useCallback(async () => {
     setIsRunning(true);
@@ -62,44 +94,15 @@ export default function CropImageNode({ id, data, selected }: NodeProps) {
         throw new Error("No image connected. Connect an image node to image_url input.");
       }
 
-      const response = await fetch("/api/trigger", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          taskType: "crop-image",
-          payload: {
-            imageUrl,
-            x: data.x ?? 0,
-            y: data.y ?? 0,
-            width: data.width ?? 100,
-            height: data.height ?? 100,
-          },
-        }),
-      });
+      const croppedDataUrl = await cropImageClientSide(
+        imageUrl,
+        Number(data.x ?? 0),
+        Number(data.y ?? 0),
+        Number(data.width ?? 100),
+        Number(data.height ?? 100)
+      );
 
-      const result = await response.json();
-      if (!result.success) throw new Error(result.error || "Failed to trigger crop task");
-
-      // If inline execution returned immediately
-      if (result.inline && result.output?.outputImageUrl) {
-        updateData({ outputImageUrl: result.output.outputImageUrl });
-        return;
-      }
-
-      // Poll for result
-      for (let i = 0; i < 120; i++) {
-        const pollRes = await fetch(`/api/trigger?runId=${result.runId}`);
-        const pollData = await pollRes.json();
-
-        if (pollData.isCompleted) {
-          updateData({ outputImageUrl: pollData.output?.outputImageUrl || "" });
-          return;
-        }
-        if (pollData.isFailed) throw new Error(pollData.error || "Crop task failed");
-
-        await new Promise((r) => setTimeout(r, 1000));
-      }
-      throw new Error("Task timed out");
+      updateData({ outputImageUrl: croppedDataUrl });
     } catch (error) {
       updateData({ error: error instanceof Error ? error.message : "Unknown error" });
     } finally {

@@ -5,6 +5,42 @@ import { Film, Play, Loader2 } from "lucide-react";
 import clsx from "clsx";
 import { useCallback, useState } from "react";
 
+// Client-side frame extraction using Canvas + Video element
+function extractFrameClientSide(
+  videoSrc: string,
+  timestamp: number
+): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const video = document.createElement("video");
+    video.crossOrigin = "anonymous";
+    video.muted = true;
+    video.preload = "auto";
+
+    video.onloadedmetadata = () => {
+      // Clamp timestamp to video duration
+      const seekTo = Math.min(timestamp, video.duration || 0);
+      video.currentTime = seekTo;
+    };
+
+    video.onseeked = () => {
+      try {
+        const canvas = document.createElement("canvas");
+        canvas.width = video.videoWidth || 640;
+        canvas.height = video.videoHeight || 360;
+        const ctx = canvas.getContext("2d")!;
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const dataUrl = canvas.toDataURL("image/png");
+        resolve(dataUrl);
+      } catch (err) {
+        reject(err);
+      }
+    };
+
+    video.onerror = () => reject(new Error("Failed to load video for frame extraction"));
+    video.src = videoSrc;
+  });
+}
+
 export default function ExtractFrameNode({ id, data, selected }: NodeProps) {
   const { setNodes, getNodes, getEdges } = useReactFlow();
   const [isRunning, setIsRunning] = useState(false);
@@ -13,20 +49,19 @@ export default function ExtractFrameNode({ id, data, selected }: NodeProps) {
   const resolveVideoUrl = useCallback(() => {
     const edges = getEdges();
     const nodes = getNodes();
-    
+
     // First try to find edge connected to video_url handle
     let videoEdge = edges.find((e) => e.target === id && e.targetHandle === "video_url");
-    
+
     // If not found, look for any edge to this node from a video-providing source
     if (!videoEdge) {
       videoEdge = edges.find((e) => {
         if (e.target !== id) return false;
         const srcNode = nodes.find((n) => n.id === e.source);
-        // Check if source node has video data
         return srcNode?.data?.videoUrl;
       });
     }
-    
+
     if (!videoEdge) return null;
 
     const sourceNode = nodes.find((n) => n.id === videoEdge.source);
@@ -35,15 +70,16 @@ export default function ExtractFrameNode({ id, data, selected }: NodeProps) {
     return sourceNode.data?.videoUrl || null;
   }, [id, getEdges, getNodes]);
 
-  const updateData = useCallback((updates: Record<string, unknown>) => {
-    setNodes((nds) =>
-      nds.map((node) =>
-        node.id === id
-          ? { ...node, data: { ...node.data, ...updates } }
-          : node
-      )
-    );
-  }, [id, setNodes]);
+  const updateData = useCallback(
+    (updates: Record<string, unknown>) => {
+      setNodes((nds) =>
+        nds.map((node) =>
+          node.id === id ? { ...node, data: { ...node.data, ...updates } } : node
+        )
+      );
+    },
+    [id, setNodes]
+  );
 
   const handleExtract = useCallback(async () => {
     setIsRunning(true);
@@ -55,41 +91,12 @@ export default function ExtractFrameNode({ id, data, selected }: NodeProps) {
         throw new Error("No video connected. Connect a Video Upload node to video_url input.");
       }
 
-      const response = await fetch("/api/trigger", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          taskType: "extract-frame",
-          payload: {
-            videoUrl,
-            timestamp: data.timestamp ?? 0,
-          },
-        }),
-      });
+      const frameDataUrl = await extractFrameClientSide(
+        videoUrl,
+        Number(data.timestamp ?? 0)
+      );
 
-      const result = await response.json();
-      if (!result.success) throw new Error(result.error || "Failed to trigger extract task");
-
-      // If inline execution returned immediately
-      if (result.inline && result.output?.outputFrameUrl) {
-        updateData({ outputFrameUrl: result.output.outputFrameUrl });
-        return;
-      }
-
-      // Poll for result
-      for (let i = 0; i < 120; i++) {
-        const pollRes = await fetch(`/api/trigger?runId=${result.runId}`);
-        const pollData = await pollRes.json();
-
-        if (pollData.isCompleted) {
-          updateData({ outputFrameUrl: pollData.output?.outputFrameUrl || "" });
-          return;
-        }
-        if (pollData.isFailed) throw new Error(pollData.error || "Extract task failed");
-
-        await new Promise((r) => setTimeout(r, 1000));
-      }
-      throw new Error("Task timed out");
+      updateData({ outputFrameUrl: frameDataUrl });
     } catch (error) {
       updateData({ error: error instanceof Error ? error.message : "Unknown error" });
     } finally {
@@ -156,10 +163,6 @@ export default function ExtractFrameNode({ id, data, selected }: NodeProps) {
           <div className="flex items-center gap-2">
             <div className={clsx("w-2 h-2 rounded-full", videoUrl ? "bg-purple-500" : "bg-[#333]")} />
             video_url
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-[#333]" />
-            timestamp (seconds)
           </div>
         </div>
 

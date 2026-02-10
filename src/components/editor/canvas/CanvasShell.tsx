@@ -309,29 +309,67 @@ export default function CanvasShell({
 
       if (!sourceNode || !targetNode) return false;
 
-      const targetHandle = connection.targetHandle ?? connection.sourceHandle ?? "";
+      // Prevent self-connection
+      if (connection.source === connection.target) return false;
 
-      if (sourceNode.type === "llm" && targetNode.type === "llm") {
-        const targetHandle = connection.targetHandle ?? connection.sourceHandle ?? "";
-        if (targetHandle === "image") return false;
-        return true;
+      const srcType = sourceNode.type ?? "";
+      const tgtType = targetNode.type ?? "";
+      const targetHandle = connection.targetHandle ?? "";
+
+      // ─── Image node connections ───
+      // image -> llm (only to "image" handle)
+      if (srcType === "image" && tgtType === "llm") {
+        return targetHandle === "image" || targetHandle === "";
       }
-
-      // prompt -> llm
-      if (sourceNode.type === "prompt" && targetNode.type === "llm") {
-        if (targetHandle === "image") return false;
-        return true;
+      // image -> cropImage (to "image_url" handle or any)
+      if (srcType === "image" && tgtType === "cropImage") {
+        return targetHandle === "image_url" || targetHandle === "";
       }
+      // image -> prompt: disallow
+      if (srcType === "image" && tgtType === "prompt") return false;
 
-      // image -> llm
-      if (sourceNode.type === "image" && targetNode.type === "llm") {
+      // ─── Video node connections ───
+      // uploadVideo -> extractFrame (to "video_url" handle or any)
+      if (srcType === "uploadVideo" && tgtType === "extractFrame") {
+        return targetHandle === "video_url" || targetHandle === "";
+      }
+      // uploadVideo -> llm: disallow (no sense)
+      if (srcType === "uploadVideo" && tgtType === "llm") return false;
+
+      // ─── CropImage output connections ───
+      // cropImage -> llm (to "image" handle)
+      if (srcType === "cropImage" && tgtType === "llm") {
         return targetHandle === "image" || targetHandle === "";
       }
 
-      // disallow connecting image -> prompt
-      if (sourceNode.type === "image" && targetNode.type === "prompt") return false;
+      // ─── ExtractFrame output connections ───
+      // extractFrame -> llm (to "image" handle — it outputs a frame image)
+      if (srcType === "extractFrame" && tgtType === "llm") {
+        return targetHandle === "image" || targetHandle === "";
+      }
 
-      return false;
+      // ─── Prompt connections ───
+      // prompt -> llm (to "text" or "system", not "image")
+      if (srcType === "prompt" && tgtType === "llm") {
+        return targetHandle !== "image";
+      }
+      // prompt -> cropImage (to param handles)
+      if (srcType === "prompt" && tgtType === "cropImage") {
+        return ["x_percent", "y_percent", "width_percent", "height_percent"].includes(targetHandle);
+      }
+      // prompt -> extractFrame (to timestamp handle)
+      if (srcType === "prompt" && tgtType === "extractFrame") {
+        return targetHandle === "timestamp";
+      }
+
+      // ─── LLM output connections ───
+      // llm -> llm (text to text/system)
+      if (srcType === "llm" && tgtType === "llm") {
+        return targetHandle !== "image";
+      }
+
+      // By default, allow the connection if source has a source handle and target has a target handle
+      return true;
     },
     [nodes]
   );
@@ -369,25 +407,48 @@ export default function CanvasShell({
 
   const handleConnect = useCallback(
     (connection: Connection) => {
-      const handleId = connection.targetHandle ?? connection.sourceHandle;
+      const targetHandle = connection.targetHandle ?? "";
 
-      const edgeColor =
-        handleId === "text"
-          ? "#A855F7"
-          : handleId === "image"
-          ? "#22C55E"
-          : handleId === "system"
-          ? "#F59E0B"
-          : "#94A3B8";
+      // Determine edge color and label based on target handle
+      let edgeColor = "#94A3B8";
+      let label = "";
 
-      const label =
-        handleId === "text"
-          ? "Prompt"
-          : handleId === "image"
-          ? "Image"
-          : handleId === "system"
-          ? "System"
-          : "";
+      switch (targetHandle) {
+        case "text":
+          edgeColor = "#A855F7";
+          label = "Prompt";
+          break;
+        case "image":
+          edgeColor = "#22C55E";
+          label = "Image";
+          break;
+        case "system":
+          edgeColor = "#F59E0B";
+          label = "System";
+          break;
+        case "image_url":
+          edgeColor = "#22C55E";
+          label = "Image";
+          break;
+        case "video_url":
+          edgeColor = "#8B5CF6";
+          label = "Video";
+          break;
+        case "timestamp":
+          edgeColor = "#F97316";
+          label = "Timestamp";
+          break;
+        case "x_percent":
+        case "y_percent":
+        case "width_percent":
+        case "height_percent":
+          edgeColor = "#F97316";
+          label = targetHandle.replace("_percent", " %");
+          break;
+        default:
+          edgeColor = "#94A3B8";
+          label = "";
+      }
 
       setEdges((eds) =>
         addEdge(

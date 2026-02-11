@@ -28,6 +28,7 @@ import { collectLLMInputs } from "@/lib/graph/collectLLMInputs";
 import LLMSidebar from "../sidebar/LLMSidebar";
 import EditorSidebar from "../sidebar/EditorSidebar";
 import { DotLoader } from "react-spinners";
+import { History, Clock, CheckCircle, XCircle, Loader2, ChevronDown, ChevronRight } from "lucide-react";
 
 const override: CSSProperties = {
   display: "block",
@@ -71,6 +72,11 @@ export default function CanvasShell({
   );
 
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [showHistory, setShowHistory] = useState(true);
+  const [runHistory, setRunHistory] = useState<
+    { id: string; nodeId: string; status: "running" | "completed" | "failed"; startedAt: string; error?: string }[]
+  >([]);
+  const [expandedRunId, setExpandedRunId] = useState<string | null>(null);
 
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const { project } = useReactFlow();
@@ -240,6 +246,36 @@ export default function CanvasShell({
     window.addEventListener("run-llm-node", handleRunLLM);
     return () => window.removeEventListener("run-llm-node", handleRunLLM);
   }, [handleRunLLM]);
+
+  /* ---------------- Run History Tracking ---------------- */
+  useEffect(() => {
+    const onStart = (e: Event) => {
+      const { nodeId } = (e as CustomEvent<{ nodeId: string }>).detail;
+      const runId = `${nodeId}-${Date.now()}`;
+      setRunHistory((prev) => [
+        { id: runId, nodeId, status: "running", startedAt: new Date().toISOString() },
+        ...prev,
+      ]);
+    };
+
+    const onEnd = (e: Event) => {
+      const { nodeId, success, error } = (e as CustomEvent<{ nodeId: string; success: boolean; error?: string }>).detail;
+      setRunHistory((prev) => {
+        const idx = prev.findIndex((r) => r.nodeId === nodeId && r.status === "running");
+        if (idx === -1) return prev;
+        const updated = [...prev];
+        updated[idx] = { ...updated[idx], status: success ? "completed" : "failed", error };
+        return updated;
+      });
+    };
+
+    window.addEventListener("llm-run-start", onStart);
+    window.addEventListener("llm-run-end", onEnd);
+    return () => {
+      window.removeEventListener("llm-run-start", onStart);
+      window.removeEventListener("llm-run-end", onEnd);
+    };
+  }, []);
 
   /* ---------------- Autosave ---------------- */
   useEffect(() => {
@@ -534,6 +570,18 @@ export default function CanvasShell({
           </span>
 
           <button
+            onClick={() => setShowHistory(!showHistory)}
+            className={`p-2 rounded-lg transition-colors ${
+              showHistory
+                ? "text-cyan-400 bg-cyan-500/10"
+                : "text-white/60 hover:text-white hover:bg-white/10"
+            }`}
+            title="Toggle History"
+          >
+            <History className="w-4 h-4" />
+          </button>
+
+          <button
             onClick={saveWorkflow}
             className="rounded-md bg-cyan-500/90 hover:bg-cyan-400 text-black px-4 py-2 text-sm font-medium"
           >
@@ -607,6 +655,109 @@ export default function CanvasShell({
             )
           }
         />
+      )}
+
+      {/* Right Sidebar - History Panel */}
+      {showHistory && (
+        <div className="w-72 border-l border-white/10 bg-[#111116] flex flex-col shrink-0">
+          {/* Header */}
+          <div className="p-3 border-b border-white/10">
+            <div className="flex items-center gap-2">
+              <Clock className="w-4 h-4 text-white/50" />
+              <span className="text-xs font-semibold text-white/50 uppercase tracking-wider">
+                Run History
+              </span>
+            </div>
+          </div>
+
+          {/* Runs List */}
+          <div className="flex-1 overflow-y-auto">
+            {runHistory.length === 0 ? (
+              <div className="p-4 text-center">
+                <Clock className="w-8 h-8 text-white/10 mx-auto mb-2" />
+                <p className="text-xs text-white/30">No runs yet</p>
+                <p className="text-xs text-white/20 mt-1">
+                  Run an LLM node to see history here
+                </p>
+              </div>
+            ) : (
+              <div className="divide-y divide-white/5">
+                {runHistory.map((run) => {
+                  const node = nodes.find((n) => n.id === run.nodeId);
+                  const label = node?.data?.model || run.nodeId;
+                  return (
+                    <div key={run.id} className="hover:bg-white/5 transition-colors">
+                      <button
+                        className="w-full p-3 text-left flex items-center gap-2"
+                        onClick={() =>
+                          setExpandedRunId(expandedRunId === run.id ? null : run.id)
+                        }
+                      >
+                        {expandedRunId === run.id ? (
+                          <ChevronDown className="w-3.5 h-3.5 text-white/40 shrink-0" />
+                        ) : (
+                          <ChevronRight className="w-3.5 h-3.5 text-white/40 shrink-0" />
+                        )}
+                        {run.status === "running" && (
+                          <Loader2 className="w-4 h-4 text-yellow-400 animate-spin" />
+                        )}
+                        {run.status === "completed" && (
+                          <CheckCircle className="w-4 h-4 text-green-400" />
+                        )}
+                        {run.status === "failed" && (
+                          <XCircle className="w-4 h-4 text-red-400" />
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-medium text-white truncate">
+                              {label}
+                            </span>
+                            <span
+                              className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${
+                                run.status === "completed"
+                                  ? "text-green-400 bg-green-500/10"
+                                  : run.status === "failed"
+                                  ? "text-red-400 bg-red-500/10"
+                                  : "text-yellow-400 bg-yellow-500/10"
+                              }`}
+                            >
+                              {run.status}
+                            </span>
+                          </div>
+                          <span className="text-[10px] text-white/30 mt-0.5 block">
+                            {new Date(run.startedAt).toLocaleTimeString()}
+                          </span>
+                        </div>
+                      </button>
+
+                      {expandedRunId === run.id && (
+                        <div className="px-3 pb-3">
+                          <div className="bg-white/5 border border-white/10 rounded-lg p-2">
+                            <div className="text-[10px] text-white/50">
+                              <p><span className="text-white/30">Node:</span> {run.nodeId}</p>
+                              <p><span className="text-white/30">Started:</span> {new Date(run.startedAt).toLocaleString()}</p>
+                              {run.error && (
+                                <p className="text-red-400 mt-1">{run.error}</p>
+                              )}
+                              {run.status === "completed" && node?.data?.output && (
+                                <div className="mt-1.5 text-white/40 bg-black/30 rounded p-1.5 max-h-24 overflow-y-auto break-all">
+                                  {typeof node.data.output === "string"
+                                    ? node.data.output.slice(0, 300)
+                                    : JSON.stringify(node.data.output, null, 2).slice(0, 300)}
+                                  {(node.data.output?.length || 0) > 300 && "…"}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
       )}
     </main>
   );

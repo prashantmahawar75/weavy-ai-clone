@@ -8,37 +8,37 @@ const workflows = [
   {
     title: "Wan Lora - Rotate",
     description: "Create rotating object animations using Wan LoRA fine-tuning.",
-    image: "https://cdn.prod.website-files.com/681b040781d5b5e278a69989/6825b0ac4e0e1cfe5a6f63e0_Wan%20Lora%20-%20Rotate.avif",
+    image: "https://cdn.prod.website-files.com/681b040781d5b5e278a69989/6825b0acc901ee5c718efc90_Wan%20Lora%20-%20Rotate.avif",
     models: ["Wan", "LoRA"],
   },
   {
     title: "Multiple Models",
     description: "Combine multiple AI models in a single workflow for enhanced results.",
-    image: "https://cdn.prod.website-files.com/681b040781d5b5e278a69989/681f925d26e3e7bc254e3b1a_Workflow%2001.avif",
+    image: "https://cdn.prod.website-files.com/681b040781d5b5e278a69989/681f925d9ecbfaf69c5dc15e_Workflow%2001.avif",
     models: ["Flux Pro", "SD 3.5"],
   },
   {
     title: "Wan LoRa Inflate",
     description: "Generate inflating object animations with Wan LoRA models.",
-    image: "https://cdn.prod.website-files.com/681b040781d5b5e278a69989/681f925ddbcef32f61f14ef2_Workflow%2003.avif",
+    image: "https://cdn.prod.website-files.com/681b040781d5b5e278a69989/681f925d9ecbfaf69c5dc164_Workflow%2003.avif",
     models: ["Wan", "LoRA"],
   },
   {
     title: "Relight 2.0 Human",
     description: "Professional relighting for human portraits with precise control.",
-    image: "https://cdn.prod.website-files.com/681b040781d5b5e278a69989/6825b0ac2e8e3bc8fe5e0d34_Relight%202.0%20human.avif",
+    image: "https://cdn.prod.website-files.com/681b040781d5b5e278a69989/6825b0ac314fefe464791808_Relight%202.0%20human.avif",
     models: ["Relight", "Portrait"],
   },
   {
     title: "Weavy Logo",
     description: "Generate brand logos with AI-powered creative workflows.",
-    image: "https://cdn.prod.website-files.com/681b040781d5b5e278a69989/6825b0ac0d2d7e9dade45e4e_Weavy%20Logo.avif",
+    image: "https://cdn.prod.website-files.com/681b040781d5b5e278a69989/6825b0acdb693fa2102f0af2_Weavy%20Logo.avif",
     models: ["Flux Pro", "GPT img"],
   },
   {
     title: "Relight - Product",
     description: "Studio-quality product relighting for e-commerce photography.",
-    image: "https://cdn.prod.website-files.com/681b040781d5b5e278a69989/6825b0aca19b9f1e1e6253e3_Relight%20-%20Product.avif",
+    image: "https://cdn.prod.website-files.com/681b040781d5b5e278a69989/6825b0ac04c55a803826a6e5_Relight%20-%20Product.avif",
     models: ["Relight", "Product"],
   },
   {

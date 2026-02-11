@@ -42,15 +42,15 @@ const workflows = [
     models: ["Relight", "Product"],
   },
   {
-    title: "Style Transfer",
+    title: "ControlNet - Structure Reference",
     description: "Apply artistic styles to photos while preserving details.",
-    image: "https://cdn.prod.website-files.com/681b040781d5b5e278a69989/681f925dc92a2e454dda3fea_Workflow%2002.avif",
+    image: "https://cdn.prod.website-files.com/681b040781d5b5e278a69989/681f925d9ecbfaf69c5dc16a_Workflow%2002.avif",
     models: ["Imagen 3", "Astro"],
   },
   {
-    title: "Multi-Layer Composite",
+    title: "Camera Angle Control",
     description: "Advanced multi-layer compositing with AI-driven blending.",
-    image: "https://cdn.prod.website-files.com/681b040781d5b5e278a69989/681f925d18b99359b65e3e36_Workflow%2004.avif",
+    image: "https://cdn.prod.website-files.com/681b040781d5b5e278a69989/681f925d9ecbfaf69c5dc170_Workflow%2004.avif",
     models: ["Layers", "Blend"],
   },
 ];

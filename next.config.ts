@@ -6,6 +6,11 @@ const nextConfig: NextConfig = {
   },
   images: {
     remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "cdn.prod.website-files.com",
+        pathname: "/**",
+      },
       { protocol: 'https', hostname: '**.transloadit.com' },
       { protocol: 'https', hostname: '**.clerk.dev' },
       { protocol: 'https', hostname: 'cdn.prod.website-files.com' },

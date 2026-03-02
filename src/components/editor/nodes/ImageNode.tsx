@@ -6,9 +6,9 @@ import {
   type NodeProps,
   useReactFlow,
 } from "reactflow";
-import { Image as ImageIcon, Plus, X } from "lucide-react";
+import { Image as ImageIcon, Plus, X, Loader2 } from "lucide-react";
 import clsx from "clsx";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useState } from "react";
 
 export default function ImageNode({ id, data, selected }: NodeProps) {
   const { setNodes } = useReactFlow();
@@ -16,71 +16,48 @@ export default function ImageNode({ id, data, selected }: NodeProps) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
-  const readerRef = useRef<FileReader | null>(null);
 
-  useEffect(() => {
-    return () => {
-      if (readerRef.current) {
-        try {
-          readerRef.current.onload = null;
-          readerRef.current.onerror = null;
-        } catch {}
-        readerRef.current = null;
-      }
-    };
-  }, []);
-
-  const onFileSelect = useCallback((file: File) => {
+  const onFileSelect = useCallback(async (file: File) => {
     setIsProcessing(true);
     setNotice(null);
 
-    const reader = new FileReader();
-    readerRef.current = reader;
-
-    reader.onload = () => {
-      try {
-        const base64 = reader.result as string;
-
-        setNodes((nds) =>
-          nds.map((node) =>
-            node.id === id
-              ? {
-                  ...node,
-                  data: {
-                    ...node.data,
-                    imageBase64: base64.split(",")[1], 
-                    mimeType: file.type,
-                    previewUrl: base64,
-                  },
-                }
-              : node
-          )
-        );
-
-        setNotice("Image added");
-      } catch (err) {
-        console.error("Failed to set image", err);
-        setNotice("Failed to process image");
-      } finally {
-        setIsProcessing(false);
-        readerRef.current = null;
-      }
-    };
-
-    reader.onerror = (err) => {
-      console.error("FileReader error", err);
-      setNotice("Failed to read file");
-      setIsProcessing(false);
-      readerRef.current = null;
-    };
-
     try {
-      reader.readAsDataURL(file);
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+      const result = await res.json();
+
+      if (!result.success) {
+        setNotice(result.error || 'Upload failed');
+        return;
+      }
+
+      setNodes((nds) =>
+        nds.map((node) =>
+          node.id === id
+            ? {
+                ...node,
+                data: {
+                  ...node.data,
+                  previewUrl: result.url,
+                  imageUrl: result.url,
+                  mimeType: file.type,
+                },
+              }
+            : node
+        )
+      );
+
+      setNotice("Image added");
     } catch (err) {
-      console.error("readAsDataURL failed", err);
-      setNotice("Failed to read file");
+      console.error("Failed to upload image", err);
+      setNotice("Failed to upload image");
+    } finally {
       setIsProcessing(false);
-      readerRef.current = null;
     }
   }, [id, setNodes]);
 
@@ -151,6 +128,11 @@ export default function ImageNode({ id, data, selected }: NodeProps) {
                 <X size={14} />
               </button>
             </>
+          ) : isProcessing ? (
+            <div className="flex flex-col items-center gap-1 text-white/50">
+              <Loader2 size={18} className="animate-spin text-purple-400" />
+              <span className="text-xs">Uploading…</span>
+            </div>
           ) : (
             <div className="flex flex-col items-center gap-1 text-white/50">
               <Plus size={18} />

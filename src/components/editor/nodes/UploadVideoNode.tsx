@@ -1,7 +1,7 @@
 "use client";
 
 import { Handle, Position, type NodeProps, useReactFlow } from "reactflow";
-import { Video, Upload, X } from "lucide-react";
+import { Video, Upload, X, Loader2 } from "lucide-react";
 import clsx from "clsx";
 import { useCallback, useRef, useState } from "react";
 
@@ -11,33 +11,50 @@ export default function UploadVideoNode({ id, data, selected }: NodeProps) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
 
-  const handleFileUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     setIsProcessing(true);
     setNotice(null);
 
-    // For local preview, use object URL
-    const url = URL.createObjectURL(file);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
 
-    setNodes((nds) =>
-      nds.map((node) =>
-        node.id === id
-          ? {
-              ...node,
-              data: {
-                ...node.data,
-                videoUrl: url,
-                fileName: file.name,
-              },
-            }
-          : node
-      )
-    );
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+      const result = await res.json();
 
-    setNotice("Video added");
-    setIsProcessing(false);
+      if (!result.success) {
+        setNotice(result.error || 'Upload failed');
+        return;
+      }
+
+      setNodes((nds) =>
+        nds.map((node) =>
+          node.id === id
+            ? {
+                ...node,
+                data: {
+                  ...node.data,
+                  videoUrl: result.url,
+                  fileName: file.name,
+                },
+              }
+            : node
+        )
+      );
+
+      setNotice("Video added");
+    } catch (err) {
+      console.error('Upload error:', err);
+      setNotice('Upload failed');
+    } finally {
+      setIsProcessing(false);
+    }
   }, [id, setNodes]);
 
   const removeVideo = useCallback(() => {
@@ -117,14 +134,24 @@ export default function UploadVideoNode({ id, data, selected }: NodeProps) {
               hover:border-purple-500/30
             "
           >
-            <Upload size={24} className="text-white/40 mb-2" />
-            <span className="text-xs text-white/40">Click to upload video</span>
-            <span className="text-[10px] text-white/30 mt-1">MP4, MOV, WebM, M4V</span>
+            {isProcessing ? (
+              <>
+                <Loader2 size={24} className="text-purple-400 mb-2 animate-spin" />
+                <span className="text-xs text-purple-400">Uploading…</span>
+              </>
+            ) : (
+              <>
+                <Upload size={24} className="text-white/40 mb-2" />
+                <span className="text-xs text-white/40">Click to upload video</span>
+                <span className="text-[10px] text-white/30 mt-1">MP4, MOV, WebM, M4V</span>
+              </>
+            )}
             <input
               type="file"
               accept="video/mp4,video/quicktime,video/webm,video/x-m4v"
               className="hidden"
               onChange={handleFileUpload}
+              disabled={isProcessing}
             />
           </label>
         )}

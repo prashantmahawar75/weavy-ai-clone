@@ -1,10 +1,10 @@
 'use client';
 
-import { memo, useRef } from 'react';
+import { memo, useRef, useState } from 'react';
 import { Position, Handle, type NodeProps } from '@xyflow/react';
 import { useWorkflowStore, type WorkflowState } from '@/stores/workflowStore';
 import type { VideoFlowNode } from '@/types/workflow.types';
-import { Video, Trash2, Upload, X } from 'lucide-react';
+import { Video, Trash2, Upload, X, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 function UploadVideoNodeComponent({ id, data, selected }: NodeProps<VideoFlowNode>) {
@@ -13,13 +13,34 @@ function UploadVideoNodeComponent({ id, data, selected }: NodeProps<VideoFlowNod
   const executingNodes = useWorkflowStore((s: WorkflowState) => s.executingNodes);
   const isExecuting = executingNodes.has(id);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const url = URL.createObjectURL(file);
-    updateNodeData(id, { videoUrl: url, fileName: file.name });
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+      const result = await res.json();
+
+      if (!result.success) {
+        console.error('Upload failed:', result.error);
+        return;
+      }
+
+      updateNodeData(id, { videoUrl: result.url, fileName: file.name });
+    } catch (err) {
+      console.error('Upload error:', err);
+    } finally {
+      setUploading(false);
+    }
   };
 
   const removeVideo = () => {
@@ -83,15 +104,25 @@ function UploadVideoNodeComponent({ id, data, selected }: NodeProps<VideoFlowNod
         ) : (
           <button
             onClick={() => fileInputRef.current?.click()}
-            className="nodrag w-full border-2 border-dashed border-[#222222] rounded-lg p-6 flex flex-col items-center gap-2 hover:border-[#8b5cf6]/30 transition-colors"
+            disabled={uploading}
+            className="nodrag w-full border-2 border-dashed border-[#222222] rounded-lg p-6 flex flex-col items-center gap-2 hover:border-[#8b5cf6]/30 transition-colors disabled:opacity-50"
           >
-            <Upload className="w-6 h-6 text-[#555555]" />
-            <span className="text-xs text-[#555555]">
-              Click to upload
-            </span>
-            <span className="text-[10px] text-[#444444]">
-              MP4, MOV, WebM, M4V
-            </span>
+            {uploading ? (
+              <>
+                <Loader2 className="w-6 h-6 text-[#8b5cf6] animate-spin" />
+                <span className="text-xs text-[#8b5cf6]">Uploading…</span>
+              </>
+            ) : (
+              <>
+                <Upload className="w-6 h-6 text-[#555555]" />
+                <span className="text-xs text-[#555555]">
+                  Click to upload
+                </span>
+                <span className="text-[10px] text-[#444444]">
+                  MP4, MOV, WebM, M4V
+                </span>
+              </>
+            )}
           </button>
         )}
       </div>

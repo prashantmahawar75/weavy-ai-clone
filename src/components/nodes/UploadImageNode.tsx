@@ -1,10 +1,10 @@
 'use client';
 
-import { memo, useRef } from 'react';
+import { memo, useRef, useState } from 'react';
 import { Position, Handle, type NodeProps } from '@xyflow/react';
 import { useWorkflowStore, type WorkflowState } from '@/stores/workflowStore';
 import type { ImageFlowNode } from '@/types/workflow.types';
-import { ImageIcon, Trash2, Upload, X } from 'lucide-react';
+import { ImageIcon, Trash2, Upload, X, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 function UploadImageNodeComponent({ id, data, selected }: NodeProps<ImageFlowNode>) {
@@ -13,17 +13,38 @@ function UploadImageNodeComponent({ id, data, selected }: NodeProps<ImageFlowNod
   const executingNodes = useWorkflowStore((s: WorkflowState) => s.executingNodes);
   const isExecuting = executingNodes.has(id);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;
 
-    for (const file of Array.from(files)) {
-      // For now, create a local URL. In production, this goes through Transloadit
-      const url = URL.createObjectURL(file);
-      const newImage = { imageUrl: url, fileName: file.name };
-      const currentImages = data.images || [];
-      updateNodeData(id, { images: [...currentImages, newImage] });
+    setUploading(true);
+    try {
+      for (const file of Array.from(files)) {
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const res = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData,
+        });
+        const result = await res.json();
+
+        if (!result.success) {
+          console.error('Upload failed:', result.error);
+          continue;
+        }
+
+        // result.url is a real CDN URL from Transloadit
+        const newImage = { imageUrl: result.url, fileName: file.name };
+        const currentImages = data.images || [];
+        updateNodeData(id, { images: [...currentImages, newImage] });
+      }
+    } catch (err) {
+      console.error('Upload error:', err);
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -88,23 +109,34 @@ function UploadImageNodeComponent({ id, data, selected }: NodeProps<ImageFlowNod
             ))}
             <button
               onClick={() => fileInputRef.current?.click()}
-              className="nodrag w-full text-xs text-[#8b5cf6] hover:text-[#a78bfa] py-1 transition-colors"
+              disabled={uploading}
+              className="nodrag w-full text-xs text-[#8b5cf6] hover:text-[#a78bfa] py-1 transition-colors disabled:opacity-50"
             >
-              + Add more images
+              {uploading ? 'Uploading…' : '+ Add more images'}
             </button>
           </div>
         ) : (
           <button
             onClick={() => fileInputRef.current?.click()}
-            className="nodrag w-full border-2 border-dashed border-[#222222] rounded-lg p-6 flex flex-col items-center gap-2 hover:border-[#8b5cf6]/30 transition-colors"
+            disabled={uploading}
+            className="nodrag w-full border-2 border-dashed border-[#222222] rounded-lg p-6 flex flex-col items-center gap-2 hover:border-[#8b5cf6]/30 transition-colors disabled:opacity-50"
           >
-            <Upload className="w-6 h-6 text-[#555555]" />
-            <span className="text-xs text-[#555555]">
-              Click to upload
-            </span>
-            <span className="text-[10px] text-[#444444]">
-              JPG, PNG, WebP, GIF
-            </span>
+            {uploading ? (
+              <>
+                <Loader2 className="w-6 h-6 text-[#8b5cf6] animate-spin" />
+                <span className="text-xs text-[#8b5cf6]">Uploading…</span>
+              </>
+            ) : (
+              <>
+                <Upload className="w-6 h-6 text-[#555555]" />
+                <span className="text-xs text-[#555555]">
+                  Click to upload
+                </span>
+                <span className="text-[10px] text-[#444444]">
+                  JPG, PNG, WebP, GIF
+                </span>
+              </>
+            )}
           </button>
         )}
       </div>

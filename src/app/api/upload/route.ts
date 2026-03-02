@@ -1,11 +1,8 @@
 import { auth } from '@clerk/nextjs/server';
 import { NextRequest, NextResponse } from 'next/server';
-import { writeFile, mkdir } from 'fs/promises';
-import path from 'path';
-import { randomUUID } from 'crypto';
 import { checkRateLimit, getClientIp, RATE_LIMITS } from '@/lib/rate-limit';
 
-// POST /api/upload - upload a file (image or video)
+// POST /api/upload - upload a file via Transloadit (returns CDN URL)
 export async function POST(req: NextRequest) {
   try {
     const { userId: clerkId } = await auth();
@@ -59,26 +56,100 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Ensure upload directory exists
-    const uploadDir = path.join(process.cwd(), 'public', 'uploads');
-    await mkdir(uploadDir, { recursive: true });
+    // Transloadit upload
+    const authKey = process.env.NEXT_PUBLIC_TRANSLOADIT_AUTH_KEY;
+    if (!authKey) {
+      return NextResponse.json(
+        { error: 'Transloadit is not configured. Add NEXT_PUBLIC_TRANSLOADIT_AUTH_KEY in your environment.' },
+        { status: 500 }
+      );
+    }
 
-    // Generate unique filename
-    const ext = file.name.split('.').pop() || 'bin';
-    const filename = `${randomUUID()}.${ext}`;
-    const filepath = path.join(uploadDir, filename);
+    const isImage = file.type.startsWith('image/');
 
-    // Write file
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
-    await writeFile(filepath, buffer);
+    // Build Transloadit assembly params: optimise images, pass-through videos
+    const assemblyParams = {
+      auth: { key: authKey },
+      steps: isImage
+        ? {
+            optimized: {
+              robot: '/image/optimize',
+              use: ':original',
+              progressive: true,
+            },
+          }
+        : {
+            optimized: {
+              robot: '/video/encode',
+              use: ':original',
+              preset: 'empty', // pass-through, no re-encoding
+              ffmpeg_stack: 'v6.0.0',
+            },
+          },
+    };
 
-    // Return public URL
-    const url = `/uploads/${filename}`;
+    // Build multipart form for Transloadit
+    const transloaditForm = new FormData();
+    transloaditForm.set('params', JSON.stringify(assemblyParams));
+    transloaditForm.set('file', file, file.name);
+
+    const assemblyRes = await fetch('https://api2.transloadit.com/assemblies', {
+      method: 'POST',
+      body: transloaditForm,
+    });
+
+    if (!assemblyRes.ok) {
+      const text = await assemblyRes.text();
+      console.error('Transloadit assembly creation failed:', text);
+      return NextResponse.json(
+        { error: 'File upload failed. Please try again.' },
+        { status: 502 }
+      );
+    }
+
+    let assembly = await assemblyRes.json();
+
+    if (assembly.error) {
+      console.error('Transloadit assembly error:', assembly.error);
+      return NextResponse.json(
+        { error: `Upload processing failed: ${assembly.error}` },
+        { status: 502 }
+      );
+    }
+
+    // Poll for assembly completion (Transloadit processes asynchronously)
+    const assemblyUrl = assembly.assembly_ssl_url || assembly.assembly_url;
+    if (assemblyUrl && assembly.ok !== 'ASSEMBLY_COMPLETED') {
+      for (let i = 0; i < 60; i++) {
+        if (assembly.ok === 'ASSEMBLY_COMPLETED') break;
+        if (assembly.ok === 'REQUEST_ABORTED' || assembly.error) {
+          return NextResponse.json(
+            { error: `Upload processing failed: ${assembly.error || assembly.ok}` },
+            { status: 502 }
+          );
+        }
+        await new Promise((r) => setTimeout(r, 1000));
+        const pollRes = await fetch(assemblyUrl);
+        assembly = await pollRes.json();
+      }
+    }
+
+    // Extract the CDN URL from results
+    const resultUrl =
+      assembly.results?.optimized?.[0]?.ssl_url ||
+      assembly.uploads?.[0]?.ssl_url ||
+      '';
+
+    if (!resultUrl) {
+      return NextResponse.json(
+        { error: 'Upload completed but no URL returned.' },
+        { status: 502 }
+      );
+    }
 
     return NextResponse.json({
       success: true,
-      url,
+      url: resultUrl,
       filename: file.name,
       size: file.size,
       type: file.type,
